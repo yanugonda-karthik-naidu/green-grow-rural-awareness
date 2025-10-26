@@ -11,6 +11,7 @@ export interface TreeInfo {
   maintenance: string;
   co2Absorption: number; // kg per year
   oxygenProduction: number; // liters per day
+  image: string;
 }
 
 export const treeData: TreeInfo[] = [
@@ -26,7 +27,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Dry, well-drained soil",
     maintenance: "Low water needs, drought resistant",
     co2Absorption: 25,
-    oxygenProduction: 260
+    oxygenProduction: 260,
+    image: "/src/assets/trees/neem.jpg"
   },
   {
     id: "banyan",
@@ -40,7 +42,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Rich, moist soil",
     maintenance: "Regular watering when young",
     co2Absorption: 50,
-    oxygenProduction: 500
+    oxygenProduction: 500,
+    image: "/src/assets/trees/banyan.jpg"
   },
   {
     id: "mango",
@@ -54,7 +57,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Well-drained, sandy loam",
     maintenance: "Moderate watering, pruning needed",
     co2Absorption: 28,
-    oxygenProduction: 300
+    oxygenProduction: 300,
+    image: "/src/assets/trees/mango.jpg"
   },
   {
     id: "coconut",
@@ -68,7 +72,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Sandy, coastal soil",
     maintenance: "Regular watering, coastal climate",
     co2Absorption: 22,
-    oxygenProduction: 250
+    oxygenProduction: 250,
+    image: "/src/assets/trees/coconut.jpg"
   },
   {
     id: "peepal",
@@ -82,7 +87,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Various soil types",
     maintenance: "Low maintenance once established",
     co2Absorption: 45,
-    oxygenProduction: 450
+    oxygenProduction: 450,
+    image: "/src/assets/trees/peepal.jpg"
   },
   {
     id: "tulsi",
@@ -96,7 +102,8 @@ export const treeData: TreeInfo[] = [
     soilType: "Well-drained, fertile soil",
     maintenance: "Regular watering, sunlight",
     co2Absorption: 2,
-    oxygenProduction: 20
+    oxygenProduction: 20,
+    image: "/src/assets/trees/tulsi.jpg"
   }
 ];
 

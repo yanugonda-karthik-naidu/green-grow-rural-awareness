@@ -24,7 +24,12 @@ export const translations = {
       "A Green Village is a Clean Village",
       "Grow Trees, Grow Life",
       "Plant Today, Breathe Tomorrow",
-      "Nature Never Goes Out of Style"
+      "Nature Never Goes Out of Style",
+      "Trees Are Poems That Earth Writes Upon the Sky",
+      "The Best Time to Plant a Tree Was 20 Years Ago. The Second Best Time Is Now",
+      "In Every Walk With Nature, One Receives Far More Than He Seeks",
+      "Between Every Two Pines Is a Doorway to a New World",
+      "He Who Plants a Tree Plants Hope"
     ],
     badges: {
       starter: "Eco Starter",
@@ -58,7 +63,12 @@ export const translations = {
       "పచ్చని గ్రామం శుభ్రమైన గ్రామం",
       "చెట్లు పెంచండి, జీవితం పెంచండి",
       "ఈరోజు నాటండి, రేపు శ్వసించండి",
-      "ప్రకృతి ఎప్పటికీ కాలం చెల్లదు"
+      "ప్రకృతి ఎప్పటికీ కాలం చెల్లదు",
+      "చెట్లు భూమి ఆకాశంపై రాసే కవిత్వాలు",
+      "చెట్టును నాటడానికి ఉత్తమ సమయం 20 సంవత్సరాల క్రితం. రెండవ ఉత్తమ సమయం ఇప్పుడు",
+      "ప్రకృతితో ప్రతి నడకలో, మనం కోరుకున్నదానికంటే ఎక్కువ పొందుతాం",
+      "ప్రతి రెండు పైన్ల మధ్య ఒక కొత్త ప్రపంచానికి తలుపు ఉంది",
+      "చెట్టును నాటే వారు ఆశను నాటుతారు"
     ],
     badges: {
       starter: "పర్యావరణ స్టార్టర్",
@@ -92,7 +102,12 @@ export const translations = {
       "हरा गाँव स्वच्छ गाँव है",
       "पेड़ उगाएं, जीवन बढ़ाएं",
       "आज लगाएं, कल सांस लें",
-      "प्रकृति कभी पुरानी नहीं होती"
+      "प्रकृति कभी पुरानी नहीं होती",
+      "पेड़ कविताएं हैं जो पृथ्वी आकाश पर लिखती है",
+      "पेड़ लगाने का सबसे अच्छा समय 20 साल पहले था। दूसरा सबसे अच्छा समय अभी है",
+      "प्रकृति के साथ हर सैर में, हमें उससे कहीं अधिक मिलता है जितना हम चाहते हैं",
+      "हर दो देवदार के बीच एक नई दुनिया का द्वार है",
+      "जो पेड़ लगाता है वह आशा लगाता है"
     ],
     badges: {
       starter: "इको स्टार्टर",

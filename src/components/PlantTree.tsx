@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sprout, TreeDeciduous, TreePine } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { UserProgress } from "@/hooks/useLocalStorage";
+import treeStagesImg from "@/assets/tree-stages.png";
 
 interface PlantTreeProps {
   language: string;
@@ -16,10 +18,12 @@ export const PlantTree = ({ language, onTreePlanted, t }: PlantTreeProps) => {
   const [isGrowing, setIsGrowing] = useState(false);
 
   const stages = [
-    { icon: Sprout, label: "Seed", size: "h-12 w-12" },
-    { icon: Sprout, label: "Sprout", size: "h-16 w-16" },
-    { icon: TreeDeciduous, label: "Sapling", size: "h-24 w-24" },
-    { icon: TreePine, label: "Tree", size: "h-32 w-32" }
+    { label: "Seed", desc: "Planting the seed in soil", progress: 0 },
+    { label: "Germination", desc: "Root emerging from seed", progress: 20 },
+    { label: "Sprout", desc: "First leaves appearing", progress: 40 },
+    { label: "Seedling", desc: "Developing stem and leaves", progress: 60 },
+    { label: "Young Tree", desc: "Growing branches", progress: 80 },
+    { label: "Mature Tree", desc: "Fully grown and producing oxygen", progress: 100 }
   ];
 
   const plantTree = () => {
@@ -30,68 +34,148 @@ export const PlantTree = ({ language, onTreePlanted, t }: PlantTreeProps) => {
     
     const growthInterval = setInterval(() => {
       setTreeStage(prev => {
-        if (prev >= 3) {
+        if (prev >= 5) {
           clearInterval(growthInterval);
           setIsGrowing(false);
           
-          // Calculate impact
           const impact = {
             treesPlanted: 1,
-            co2Reduced: 25, // kg per tree per year
-            oxygenGenerated: 260, // liters per day
-            wildlifeSheltered: 5 // birds per tree
+            co2Reduced: 25,
+            oxygenGenerated: 260,
+            wildlifeSheltered: 5
           };
           
           onTreePlanted(impact);
-          toast.success(t.plantTree + " 🌳");
+          toast.success(t.plantTree + " 🌳 Successfully Grown!");
           
           return prev;
         }
         return prev + 1;
       });
-    }, 1500);
+    }, 2000);
   };
 
-  const CurrentStageIcon = stages[treeStage]?.icon || Sprout;
-
   return (
-    <Card className="p-8 text-center">
-      <h2 className="text-3xl font-bold mb-6 text-primary">{t.plantTree}</h2>
+    <Card className="p-8">
+      <h2 className="text-3xl font-bold mb-6 text-primary text-center">{t.plantTree}</h2>
       
-      <div className="min-h-[300px] flex items-center justify-center mb-8 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--sky))] to-[hsl(var(--background))] rounded-lg opacity-50" />
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[hsl(var(--earth))] to-transparent rounded-b-lg" />
+      <div className="min-h-[400px] flex flex-col items-center justify-center mb-8 relative bg-gradient-to-b from-sky-100 to-green-50 dark:from-sky-950/30 dark:to-green-950/30 rounded-xl p-8">
+        {/* Realistic tree growth visualization */}
+        <div className="relative w-full max-w-md h-80 flex items-end justify-center overflow-hidden">
+          {/* Soil base */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-amber-900 to-amber-700 dark:from-amber-950 dark:to-amber-900 rounded-b-xl" />
+          
+          {/* Growth stages visualization */}
+          <div 
+            className="relative z-10 transition-all duration-1000 ease-out transform"
+            style={{
+              transform: `scale(${0.3 + (treeStage * 0.15)})`,
+              opacity: treeStage === 0 ? 0.3 : 1
+            }}
+          >
+            {treeStage === 0 && (
+              <div className="w-4 h-4 bg-amber-800 rounded-full animate-pulse" />
+            )}
+            {treeStage === 1 && (
+              <div className="flex flex-col items-center">
+                <div className="w-1 h-8 bg-green-700 rounded-t" />
+                <div className="w-4 h-4 bg-amber-800 rounded-full" />
+              </div>
+            )}
+            {treeStage === 2 && (
+              <div className="flex flex-col items-center">
+                <div className="flex gap-1">
+                  <div className="w-3 h-3 bg-green-600 rounded-full" />
+                  <div className="w-3 h-3 bg-green-600 rounded-full" />
+                </div>
+                <div className="w-2 h-12 bg-green-700 rounded" />
+              </div>
+            )}
+            {treeStage === 3 && (
+              <div className="flex flex-col items-center">
+                <div className="flex gap-2 mb-1">
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 bg-green-600 rounded-full" />
+                    <div className="w-4 h-4 bg-green-600 rounded-full" />
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 bg-green-600 rounded-full" />
+                    <div className="w-4 h-4 bg-green-600 rounded-full" />
+                  </div>
+                </div>
+                <div className="w-3 h-20 bg-amber-800 rounded" />
+              </div>
+            )}
+            {treeStage === 4 && (
+              <div className="flex flex-col items-center">
+                <div className="relative w-32 h-32">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 bg-green-600 rounded-full opacity-80" />
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-20 bg-green-500 rounded-full opacity-90" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-16 bg-amber-800 rounded" />
+                </div>
+              </div>
+            )}
+            {treeStage === 5 && (
+              <div className="flex flex-col items-center animate-bounce-slow">
+                <div className="relative w-48 h-48">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-green-600 rounded-full opacity-80" />
+                  <div className="absolute top-2 left-1/4 w-32 h-32 bg-green-500 rounded-full opacity-90" />
+                  <div className="absolute top-2 right-1/4 w-32 h-32 bg-green-500 rounded-full opacity-90" />
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-28 bg-green-400 rounded-full" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-24 bg-amber-800 rounded shadow-lg" />
+                  {/* Fruits */}
+                  <div className="absolute top-12 left-20 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <div className="absolute top-16 right-20 w-3 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <div className="absolute top-20 left-24 w-3 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stage information */}
+        <div className="mt-8 text-center w-full max-w-md">
+          <p className="text-2xl font-bold text-primary mb-2">
+            {stages[treeStage]?.label}
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {stages[treeStage]?.desc}
+          </p>
+          
+          {/* Progress bar */}
+          <Progress value={stages[treeStage]?.progress} className="h-3 mb-4" />
+          
+          {/* Stage indicators */}
+          <div className="flex justify-center gap-2">
+            {stages.map((stage, idx) => (
+              <div
+                key={idx}
+                className={`h-3 w-12 rounded-full transition-all ${
+                  idx <= treeStage ? 'bg-primary scale-110' : 'bg-muted'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <Button 
+          onClick={plantTree} 
+          disabled={isGrowing}
+          size="lg"
+          className="text-lg px-12 py-6 shadow-lg hover:shadow-xl transition-all"
+        >
+          <Sprout className="mr-2 h-6 w-6" />
+          {isGrowing ? "Growing..." : t.plantNow}
+        </Button>
         
-        <CurrentStageIcon 
-          className={`${stages[treeStage]?.size} text-primary animate-grow relative z-10 transition-all duration-500`}
-          strokeWidth={1.5}
-        />
+        {treeStage === 5 && (
+          <p className="mt-4 text-green-600 dark:text-green-400 font-semibold animate-pulse">
+            🎉 Congratulations! Your tree is now producing oxygen! 🌳
+          </p>
+        )}
       </div>
-
-      <div className="flex justify-center gap-2 mb-6">
-        {stages.map((stage, idx) => (
-          <div
-            key={idx}
-            className={`h-2 w-12 rounded-full transition-all ${
-              idx <= treeStage ? 'bg-primary' : 'bg-muted'
-            }`}
-          />
-        ))}
-      </div>
-
-      <p className="text-lg mb-4 text-muted-foreground">
-        Stage: {stages[treeStage]?.label}
-      </p>
-
-      <Button 
-        onClick={plantTree} 
-        disabled={isGrowing}
-        size="lg"
-        className="text-lg px-8"
-      >
-        <Sprout className="mr-2 h-5 w-5" />
-        {t.plantNow}
-      </Button>
     </Card>
   );
 };
