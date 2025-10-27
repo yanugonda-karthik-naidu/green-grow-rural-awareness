@@ -18,11 +18,20 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
   const [selectedStat, setSelectedStat] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Provide defaults for new fields that might not exist in localStorage
+  const safeProgress = {
+    ...progress,
+    waterSaved: progress.waterSaved || 0,
+    greenAreaExpanded: progress.greenAreaExpanded || 0,
+    energySaved: progress.energySaved || 0,
+    weeklyProgress: progress.weeklyProgress || []
+  };
+
   const stats = [
     {
       icon: TreeDeciduous,
       label: t.treesPlanted,
-      value: progress.treesPlanted,
+      value: safeProgress.treesPlanted,
       unit: "",
       color: "text-emerald-600",
       bgGradient: "bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-emerald-300/5",
@@ -32,7 +41,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Cloud,
       label: t.co2Reduced,
-      value: progress.co2Reduced,
+      value: safeProgress.co2Reduced,
       unit: "kg",
       color: "text-sky-600",
       bgGradient: "bg-gradient-to-br from-sky-500/20 via-sky-400/10 to-sky-300/5",
@@ -42,7 +51,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Wind,
       label: t.oxygenGenerated,
-      value: progress.oxygenGenerated,
+      value: safeProgress.oxygenGenerated,
       unit: "L/day",
       color: "text-cyan-600",
       bgGradient: "bg-gradient-to-br from-cyan-500/20 via-cyan-400/10 to-cyan-300/5",
@@ -52,7 +61,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Bird,
       label: t.wildlifeSheltered,
-      value: progress.wildlifeSheltered,
+      value: safeProgress.wildlifeSheltered,
       unit: "birds",
       color: "text-amber-600",
       bgGradient: "bg-gradient-to-br from-amber-500/20 via-amber-400/10 to-amber-300/5",
@@ -62,7 +71,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Droplet,
       label: "Water Saved",
-      value: progress.waterSaved,
+      value: safeProgress.waterSaved,
       unit: "L",
       color: "text-blue-600",
       bgGradient: "bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-blue-300/5",
@@ -72,7 +81,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Map,
       label: "Green Area",
-      value: progress.greenAreaExpanded,
+      value: safeProgress.greenAreaExpanded,
       unit: "m²",
       color: "text-green-600",
       bgGradient: "bg-gradient-to-br from-green-500/20 via-green-400/10 to-green-300/5",
@@ -82,7 +91,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     {
       icon: Zap,
       label: "Energy Saved",
-      value: progress.energySaved,
+      value: safeProgress.energySaved,
       unit: "kWh",
       color: "text-yellow-600",
       bgGradient: "bg-gradient-to-br from-yellow-500/20 via-yellow-400/10 to-yellow-300/5",
@@ -92,7 +101,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
   ];
 
   const maxTrees = 100;
-  const progressPercent = Math.min((progress.treesPlanted / maxTrees) * 100, 100);
+  const progressPercent = Math.min((safeProgress.treesPlanted / maxTrees) * 100, 100);
 
   // Enhanced achievement tiers
   const achievementTiers = [
@@ -107,44 +116,44 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
   const currentTier = achievementTiers
     .slice()
     .reverse()
-    .find(tier => progress.treesPlanted >= tier.threshold) || achievementTiers[0];
+    .find(tier => safeProgress.treesPlanted >= tier.threshold) || achievementTiers[0];
 
-  const nextTier = achievementTiers.find(tier => tier.threshold > progress.treesPlanted);
+  const nextTier = achievementTiers.find(tier => tier.threshold > safeProgress.treesPlanted);
 
   // Enhanced badges with more types
   const allBadgeTypes = [
-    { id: "water_saver", name: "💧 Water Saver", desc: "Regular tree maintenance", condition: () => progress.plantedTrees.length >= 3 },
-    { id: "climate_warrior", name: "🌤 Climate Warrior", desc: "Active in all seasons", condition: () => progress.treesPlanted >= 15 },
-    { id: "eco_educator", name: "🐝 Eco Educator", desc: "Completed awareness quiz", condition: () => progress.badges.includes("Quiz Master") },
-    { id: "bird_saver", name: "🕊 Bird Saver", desc: "Increased wildlife shelter", condition: () => progress.wildlifeSheltered >= 10 },
-    { id: "soil_protector", name: "💚 Soil Protector", desc: "Planted diverse tree types", condition: () => progress.plantedTrees.length >= 5 },
+    { id: "water_saver", name: "💧 Water Saver", desc: "Regular tree maintenance", condition: () => safeProgress.plantedTrees.length >= 3 },
+    { id: "climate_warrior", name: "🌤 Climate Warrior", desc: "Active in all seasons", condition: () => safeProgress.treesPlanted >= 15 },
+    { id: "eco_educator", name: "🐝 Eco Educator", desc: "Completed awareness quiz", condition: () => safeProgress.badges.includes("Quiz Master") },
+    { id: "bird_saver", name: "🕊 Bird Saver", desc: "Increased wildlife shelter", condition: () => safeProgress.wildlifeSheltered >= 10 },
+    { id: "soil_protector", name: "💚 Soil Protector", desc: "Planted diverse tree types", condition: () => safeProgress.plantedTrees.length >= 5 },
   ];
 
   const earnedBadges = allBadgeTypes.filter(badge => badge.condition());
 
   // Impact distribution for pie chart
   const impactData = [
-    { name: 'CO₂ Reduced', value: progress.co2Reduced, color: '#0ea5e9' },
-    { name: 'O₂ Generated', value: progress.oxygenGenerated / 10, color: '#06b6d4' },
-    { name: 'Wildlife', value: progress.wildlifeSheltered * 10, color: '#f59e0b' },
-    { name: 'Water Saved', value: progress.waterSaved / 10, color: '#3b82f6' },
+    { name: 'CO₂ Reduced', value: safeProgress.co2Reduced, color: '#0ea5e9' },
+    { name: 'O₂ Generated', value: safeProgress.oxygenGenerated / 10, color: '#06b6d4' },
+    { name: 'Wildlife', value: safeProgress.wildlifeSheltered * 10, color: '#f59e0b' },
+    { name: 'Water Saved', value: safeProgress.waterSaved / 10, color: '#3b82f6' },
   ];
 
   // Weekly progress data
-  const weeklyData = progress.weeklyProgress.length > 0 
-    ? progress.weeklyProgress 
+  const weeklyData = safeProgress.weeklyProgress.length > 0 
+    ? safeProgress.weeklyProgress 
     : [
         { week: 'Week 1', trees: 2, co2: 50 },
         { week: 'Week 2', trees: 5, co2: 125 },
         { week: 'Week 3', trees: 3, co2: 75 },
-        { week: 'Week 4', trees: Math.max(1, progress.treesPlanted), co2: progress.co2Reduced },
+        { week: 'Week 4', trees: Math.max(1, safeProgress.treesPlanted), co2: safeProgress.co2Reduced },
       ];
 
   // Leaderboard data
   const leaderboardData = [
     { rank: 1, name: "Ravi Kumar", trees: 127, impact: 3175, avatar: "🌟" },
     { rank: 2, name: "Priya Sharma", trees: 98, impact: 2450, avatar: "🌿" },
-    { rank: 3, name: "You", trees: progress.treesPlanted, impact: progress.co2Reduced, avatar: "🌱" },
+    { rank: 3, name: "You", trees: safeProgress.treesPlanted, impact: safeProgress.co2Reduced, avatar: "🌱" },
     { rank: 4, name: "Amit Patel", trees: 76, impact: 1900, avatar: "🌲" },
     { rank: 5, name: "Sneha Reddy", trees: 64, impact: 1600, avatar: "🍃" },
   ].sort((a, b) => b.trees - a.trees).map((item, idx) => ({ ...item, rank: idx + 1 }));
@@ -167,11 +176,11 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
   };
 
   useEffect(() => {
-    if (progress.treesPlanted > 0 && progress.treesPlanted % 10 === 0) {
+    if (safeProgress.treesPlanted > 0 && safeProgress.treesPlanted % 10 === 0) {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
     }
-  }, [progress.treesPlanted]);
+  }, [safeProgress.treesPlanted]);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -230,12 +239,12 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
                 {t.myProgress}
               </span>
               <span className="font-bold text-emerald-600 text-lg">
-                {progress.treesPlanted} / {maxTrees}
+                {safeProgress.treesPlanted} / {maxTrees}
               </span>
             </div>
             <Progress value={progressPercent} className="h-4 shadow-inner" />
             <p className="text-xs text-muted-foreground text-center font-medium">
-              🎯 {maxTrees - progress.treesPlanted} more trees to reach your goal!
+              🎯 {maxTrees - safeProgress.treesPlanted} more trees to reach your goal!
             </p>
           </div>
         </CardContent>
@@ -335,13 +344,13 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
             </div>
             <h3 className="text-2xl font-bold text-green-600">Your Eco Impact Summary</h3>
             <p className="text-lg text-foreground max-w-3xl mx-auto">
-              🌿 Your greenery supports <strong>{progress.wildlifeSheltered} birds</strong>, covers <strong>{progress.greenAreaExpanded} m²</strong> of shade area, and absorbs <strong>{progress.co2Reduced} kg</strong> of CO₂ every year.
+              🌿 Your greenery supports <strong>{safeProgress.wildlifeSheltered} birds</strong>, covers <strong>{safeProgress.greenAreaExpanded} m²</strong> of shade area, and absorbs <strong>{safeProgress.co2Reduced} kg</strong> of CO₂ every year.
             </p>
             <p className="text-md text-muted-foreground">
-              🎯 At this pace, you'll become a <strong>{nextTier?.name || "Earth Saver"}</strong> in {nextTier ? Math.ceil((nextTier.threshold - progress.treesPlanted) / (progress.treesPlanted || 1)) : 0} days!
+              🎯 At this pace, you'll become a <strong>{nextTier?.name || "Earth Saver"}</strong> in {nextTier ? Math.ceil((nextTier.threshold - safeProgress.treesPlanted) / (safeProgress.treesPlanted || 1)) : 0} days!
             </p>
             <Button 
-              onClick={() => speakMotivation(`You have planted ${progress.treesPlanted} trees and reduced ${progress.co2Reduced} kilograms of carbon dioxide. Keep up the amazing work!`)}
+              onClick={() => speakMotivation(`You have planted ${safeProgress.treesPlanted} trees and reduced ${safeProgress.co2Reduced} kilograms of carbon dioxide. Keep up the amazing work!`)}
               variant="secondary"
               className="mt-4"
             >
@@ -353,7 +362,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
       </Card>
 
       {/* Planted Trees Gallery */}
-      {progress.plantedTrees.length > 0 && (
+      {safeProgress.plantedTrees.length > 0 && (
         <Card className="overflow-hidden border-2 border-secondary/20 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-secondary/10 to-accent/10">
             <CardTitle className="text-2xl font-bold text-secondary flex items-center gap-2">
@@ -365,7 +374,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
           <CardContent className="p-6">
             <ScrollArea className="h-[400px] pr-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {progress.plantedTrees.map((tree, idx) => {
+                {safeProgress.plantedTrees.map((tree, idx) => {
                   const treeInfo = treeData.find(t => t.nameEn === tree.name);
                   const growthStage = Math.min(tree.stage, 6);
                   const growthPercent = (growthStage / 6) * 100;
@@ -438,11 +447,11 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
                 <h3 className={`text-xl font-bold ${currentTier.color}`}>{currentTier.name}</h3>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-emerald-600">{progress.treesPlanted}</p>
+                <p className="text-3xl font-bold text-emerald-600">{safeProgress.treesPlanted}</p>
                 <p className="text-xs text-muted-foreground">Total Trees</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-sky-600">{progress.co2Reduced}</p>
+                <p className="text-3xl font-bold text-sky-600">{safeProgress.co2Reduced}</p>
                 <p className="text-xs text-muted-foreground">Impact Score</p>
               </div>
               <div className="text-center">
@@ -452,7 +461,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
               <div className="text-center">
                 {nextTier && (
                   <>
-                    <p className="text-2xl font-bold text-purple-600">{nextTier.threshold - progress.treesPlanted}</p>
+                    <p className="text-2xl font-bold text-purple-600">{nextTier.threshold - safeProgress.treesPlanted}</p>
                     <p className="text-xs text-muted-foreground">Trees to {nextTier.name}</p>
                   </>
                 )}
@@ -468,7 +477,7 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {achievementTiers.map((tier, idx) => {
-                const isUnlocked = progress.treesPlanted >= tier.threshold;
+                const isUnlocked = safeProgress.treesPlanted >= tier.threshold;
                 const isCurrent = tier.name === currentTier.name;
                 
                 return (
