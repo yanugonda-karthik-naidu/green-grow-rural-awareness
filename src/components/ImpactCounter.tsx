@@ -1,10 +1,10 @@
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TreeDeciduous, Cloud, Wind, Bird, Trophy, Star, Sparkles, Calendar, Droplet, Map, Zap, TrendingUp, Target, Award, Share2, Volume2 } from "lucide-react";
 import { UserProgress } from "@/hooks/useLocalStorage";
 import { treeData } from "@/lib/treeData";
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Badge } from "@/components/ui/badge";
