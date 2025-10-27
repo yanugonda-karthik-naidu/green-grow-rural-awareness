@@ -29,12 +29,20 @@ export interface UserProgress {
   co2Reduced: number;
   oxygenGenerated: number;
   wildlifeSheltered: number;
+  waterSaved: number;
+  greenAreaExpanded: number;
+  energySaved: number;
   badges: string[];
   plantedTrees: Array<{
     id: string;
     name: string;
     plantedDate: string;
     stage: number;
+  }>;
+  weeklyProgress: Array<{
+    week: string;
+    trees: number;
+    co2: number;
   }>;
 }
 
@@ -44,7 +52,11 @@ export const useUserProgress = () => {
     co2Reduced: 0,
     oxygenGenerated: 0,
     wildlifeSheltered: 0,
+    waterSaved: 0,
+    greenAreaExpanded: 0,
+    energySaved: 0,
     badges: [],
-    plantedTrees: []
+    plantedTrees: [],
+    weeklyProgress: []
   });
 };
