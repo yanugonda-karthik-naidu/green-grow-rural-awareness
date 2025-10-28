@@ -111,10 +111,11 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   }, []);
 
   // Calculate global impact
+  const safeUsersForImpact = Array.isArray(users) ? users : [];
   const globalImpact = {
-    totalTrees: users.reduce((sum, user) => sum + user.treesPlanted, 0),
-    co2Saved: users.reduce((sum, user) => sum + user.treesPlanted * 25, 0),
-    usersInvolved: users.length
+    totalTrees: safeUsersForImpact.reduce((sum, user) => sum + user.treesPlanted, 0),
+    co2Saved: safeUsersForImpact.reduce((sum, user) => sum + user.treesPlanted * 25, 0),
+    usersInvolved: safeUsersForImpact.length
   };
 
   const getUserBadge = (treesPlanted: number) => {
@@ -225,11 +226,15 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     setTags(tags.filter(t => t !== tag));
   };
 
+  const safeMessages = Array.isArray(messages) ? messages : [];
+  const safeChallenges = Array.isArray(challenges) ? challenges : [];
+  const safeUsers = Array.isArray(users) ? users : [];
+  
   const filteredMessages = selectedLocation === "all" 
-    ? messages 
-    : messages.filter(msg => msg.location === selectedLocation);
+    ? safeMessages 
+    : safeMessages.filter(msg => msg.location === selectedLocation);
 
-  const topContributors = [...users].sort((a, b) => b.points - a.points).slice(0, 5);
+  const topContributors = [...safeUsers].sort((a, b) => b.points - a.points).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -265,7 +270,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
       </Card>
 
       {/* Community Challenge */}
-      {challenges.map(challenge => (
+      {safeChallenges.map(challenge => (
         <Card key={challenge.id} className="p-6 border-2 border-primary/30">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="h-6 w-6 text-primary" />
@@ -387,7 +392,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                     <p className="text-foreground mb-3 leading-relaxed">{message.text}</p>
 
                     {/* Tags */}
-                    {message.tags && message.tags.length > 0 && (
+                    {message.tags && Array.isArray(message.tags) && message.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {message.tags.map(tag => (
                           <Badge key={tag} variant="outline" className="text-xs">
@@ -409,7 +414,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                           className="gap-1 hover:bg-blue-100 dark:hover:bg-blue-900"
                         >
                           <ThumbsUp className="h-4 w-4" />
-                          <span className="text-xs">{message.reactions.like}</span>
+                          <span className="text-xs">{message.reactions?.like || 0}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -418,7 +423,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                           className="gap-1 hover:bg-red-100 dark:hover:bg-red-900"
                         >
                           <Heart className="h-4 w-4" />
-                          <span className="text-xs">{message.reactions.love}</span>
+                          <span className="text-xs">{message.reactions?.love || 0}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -427,7 +432,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                           className="gap-1 hover:bg-green-100 dark:hover:bg-green-900"
                         >
                           <Sprout className="h-4 w-4" />
-                          <span className="text-xs">{message.reactions.plant}</span>
+                          <span className="text-xs">{message.reactions?.plant || 0}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -436,7 +441,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                           className="gap-1 hover:bg-purple-100 dark:hover:bg-purple-900"
                         >
                           <Leaf className="h-4 w-4" />
-                          <span className="text-xs">{message.reactions.support}</span>
+                          <span className="text-xs">{message.reactions?.support || 0}</span>
                         </Button>
                       </div>
                       <Button
@@ -446,14 +451,14 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                         className="gap-1"
                       >
                         <MessageCircle className="h-4 w-4" />
-                        <span className="text-xs">{message.comments.length}</span>
+                        <span className="text-xs">{message.comments?.length || 0}</span>
                       </Button>
                     </div>
 
                     {/* Comments Section */}
                     {showComments[message.id] && (
                       <div className="space-y-3 pt-3 border-t">
-                        {message.comments.map(comment => (
+                        {(message.comments || []).map(comment => (
                           <div key={comment.id} className="flex gap-2 text-sm">
                             <div className="w-6 h-6 rounded-full bg-secondary/50 flex items-center justify-center text-xs flex-shrink-0">
                               {comment.author === "EcoBot 🤖" ? "🤖" : "👤"}
