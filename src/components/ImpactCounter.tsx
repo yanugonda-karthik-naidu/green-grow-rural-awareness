@@ -24,7 +24,9 @@ export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
     waterSaved: progress.waterSaved || 0,
     greenAreaExpanded: progress.greenAreaExpanded || 0,
     energySaved: progress.energySaved || 0,
-    weeklyProgress: progress.weeklyProgress || []
+    seedPoints: progress.seedPoints || 0,
+    weeklyProgress: progress.weeklyProgress || [],
+    achievementTimeline: progress.achievementTimeline || []
   };
 
   const stats = [

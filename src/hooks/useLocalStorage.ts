@@ -32,6 +32,7 @@ export interface UserProgress {
   waterSaved: number;
   greenAreaExpanded: number;
   energySaved: number;
+  seedPoints: number;
   badges: string[];
   plantedTrees: Array<{
     id: string;
@@ -44,6 +45,11 @@ export interface UserProgress {
     trees: number;
     co2: number;
   }>;
+  achievementTimeline: Array<{
+    date: string;
+    achievement: string;
+    seedsEarned: number;
+  }>;
 }
 
 export const useUserProgress = () => {
@@ -55,8 +61,10 @@ export const useUserProgress = () => {
     waterSaved: 0,
     greenAreaExpanded: 0,
     energySaved: 0,
+    seedPoints: 0,
     badges: [],
     plantedTrees: [],
-    weeklyProgress: []
+    weeklyProgress: [],
+    achievementTimeline: []
   });
 };
