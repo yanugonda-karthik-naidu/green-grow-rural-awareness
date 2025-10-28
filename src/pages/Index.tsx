@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, Brain } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 import { useUserProgress } from "@/hooks/useLocalStorage";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -11,6 +11,8 @@ import { ImpactCounter } from "@/components/ImpactCounter";
 import { AchievementsDashboard } from "@/components/AchievementsDashboard";
 import { TreeLibrary } from "@/components/TreeLibrary";
 import { Quiz } from "@/components/Quiz";
+import { QuizGames } from "@/components/QuizGames";
+import { MiniGames } from "@/components/MiniGames";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall } from "@/components/CommunityWall";
 import { LearnSection } from "@/components/LearnSection";
@@ -114,6 +116,8 @@ const Index = () => {
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
+    { id: 'funquiz', label: 'Fun Quiz', icon: Brain },
+    { id: 'games', label: 'Mini Games', icon: Gamepad2 },
     { id: 'voice', label: t.voiceAssistant, icon: Mic },
     { id: 'community', label: t.communityWall, icon: Users },
   ];
@@ -148,7 +152,7 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 h-auto p-2 bg-card">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
@@ -190,6 +194,21 @@ const Index = () => {
                   updateProgress({ treesPlanted: 1, co2Reduced: 5, oxygenGenerated: 50, wildlifeSheltered: 1 });
                 }
               }}
+            />
+          </TabsContent>
+
+          <TabsContent value="funquiz">
+            <QuizGames 
+              progress={progress} 
+              onProgressUpdate={updateProgress}
+              t={t}
+            />
+          </TabsContent>
+
+          <TabsContent value="games">
+            <MiniGames 
+              progress={progress} 
+              onProgressUpdate={updateProgress}
             />
           </TabsContent>
 
