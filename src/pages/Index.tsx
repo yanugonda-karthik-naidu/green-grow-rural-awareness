@@ -45,6 +45,14 @@ const Index = () => {
 
   const t = translations[language];
 
+  // Rotate slogans
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlogan((prev) => (prev + 1) % t.slogans.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [t.slogans.length]);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
@@ -132,14 +140,6 @@ const Index = () => {
       seed_points: seedsEarned,
     });
   };
-
-  // Rotate slogans
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlogan((prev) => (prev + 1) % t.slogans.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [t.slogans.length]);
 
   const navItems = [
     { id: 'plant', label: t.plantTree, icon: TreeDeciduous },
