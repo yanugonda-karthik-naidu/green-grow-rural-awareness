@@ -81,32 +81,32 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
     },
     {
       icon: Droplet,
-      label: "Water Saved",
+      label: t.waterSaved,
       value: safeProgress.waterSaved,
       unit: "L",
       color: "text-blue-600",
       bgGradient: "bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-blue-300/5",
-      description: "Water conservation through greenery",
+      description: t.waterSavedDesc,
       trend: "+18%"
     },
     {
       icon: Map,
-      label: "Green Area",
+      label: t.greenArea,
       value: safeProgress.greenAreaExpanded,
       unit: "m²",
       color: "text-green-600",
       bgGradient: "bg-gradient-to-br from-green-500/20 via-green-400/10 to-green-300/5",
-      description: "Land area covered with plantation",
+      description: t.greenAreaDesc,
       trend: "+7%"
     },
     {
       icon: Zap,
-      label: "Energy Saved",
+      label: t.energySaved,
       value: safeProgress.energySaved,
       unit: "kWh",
       color: "text-yellow-600",
       bgGradient: "bg-gradient-to-br from-yellow-500/20 via-yellow-400/10 to-yellow-300/5",
-      description: "Energy saved through shade & cooling",
+      description: t.energySavedDesc,
       trend: "+5%"
     }
   ];
@@ -116,27 +116,27 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
 
   // Impact distribution for pie chart
   const impactData = [
-    { name: 'CO₂ Reduced', value: safeProgress.co2Reduced, color: '#0ea5e9' },
-    { name: 'O₂ Generated', value: safeProgress.oxygenGenerated / 10, color: '#06b6d4' },
-    { name: 'Wildlife', value: safeProgress.wildlifeSheltered * 10, color: '#f59e0b' },
-    { name: 'Water Saved', value: safeProgress.waterSaved / 10, color: '#3b82f6' },
+    { name: t.co2Reduced, value: safeProgress.co2Reduced, color: '#0ea5e9' },
+    { name: t.oxygenGenerated, value: safeProgress.oxygenGenerated / 10, color: '#06b6d4' },
+    { name: t.wildlifeSheltered, value: safeProgress.wildlifeSheltered * 10, color: '#f59e0b' },
+    { name: t.waterSaved, value: safeProgress.waterSaved / 10, color: '#3b82f6' },
   ];
 
   // Weekly progress data
   const weeklyData = safeProgress.weeklyProgress.length > 0 
     ? safeProgress.weeklyProgress 
     : [
-        { week: 'Week 1', trees: 2, co2: 50 },
-        { week: 'Week 2', trees: 5, co2: 125 },
-        { week: 'Week 3', trees: 3, co2: 75 },
-        { week: 'Week 4', trees: Math.max(1, safeProgress.treesPlanted), co2: safeProgress.co2Reduced },
+        { week: `${t.week} 1`, trees: 2, co2: 50 },
+        { week: `${t.week} 2`, trees: 5, co2: 125 },
+        { week: `${t.week} 3`, trees: 3, co2: 75 },
+        { week: `${t.week} 4`, trees: Math.max(1, safeProgress.treesPlanted), co2: safeProgress.co2Reduced },
       ];
 
   // AI Suggestions
   const aiSuggestions = [
-    { icon: TreeDeciduous, text: "Plant 3 Neem Trees this week to boost your CO₂ reduction by 75 kg/year!", action: "Plant Now" },
-    { icon: Cloud, text: "Monsoon Alert 🌧 — this week's weather is ideal for planting mango saplings.", action: "Learn More" },
-    { icon: Droplet, text: "Water your planted trees every 2 days during this dry season.", action: "Set Reminder" },
+    { icon: TreeDeciduous, text: t.aiSuggestion1, action: t.plantNowAction },
+    { icon: Cloud, text: t.aiSuggestion2, action: t.learnMore },
+    { icon: Droplet, text: t.aiSuggestion3, action: t.setReminderAction },
   ];
 
   const speakMotivation = (text: string) => {
@@ -161,10 +161,10 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
       {/* Hero Header */}
       <div className="text-center space-y-2 p-6 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 rounded-2xl border-2 border-emerald-500/20">
         <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-          🌍 Impact Counter
+          🌍 {t.impactCounter}
         </h2>
-        <p className="text-muted-foreground text-lg">Your Environmental Impact at a Glance</p>
-        <p className="text-sm text-muted-foreground">See how your plantation contributes to a greener Earth</p>
+        <p className="text-muted-foreground text-lg">{t.impactGlance}</p>
+        <p className="text-sm text-muted-foreground">{t.impactContribution}</p>
       </div>
 
       {/* Dynamic Stats Grid */}
@@ -172,9 +172,9 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
         <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 pb-4">
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-emerald-600" />
-            Live Impact Metrics
+            {t.liveMetrics}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">Real-time environmental contribution tracking</p>
+          <p className="text-sm text-muted-foreground">{t.realtimeTracking}</p>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

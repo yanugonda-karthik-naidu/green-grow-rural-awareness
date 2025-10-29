@@ -17,12 +17,12 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
   const [isGrowing, setIsGrowing] = useState(false);
 
   const stages = [
-    { label: "Seed", desc: "Planting the seed in soil", progress: 0 },
-    { label: "Germination", desc: "Root emerging from seed", progress: 20 },
-    { label: "Sprout", desc: "First leaves appearing", progress: 40 },
-    { label: "Seedling", desc: "Developing stem and leaves", progress: 60 },
-    { label: "Young Tree", desc: "Growing branches", progress: 80 },
-    { label: "Mature Tree", desc: "Fully grown and producing oxygen", progress: 100 }
+    { label: t.stageSeed, desc: t.stageSeedDesc, progress: 0 },
+    { label: t.stageGermination, desc: t.stageGerminationDesc, progress: 20 },
+    { label: t.stageSprout, desc: t.stageSproutDesc, progress: 40 },
+    { label: t.stageSeedling, desc: t.stageSeedlingDesc, progress: 60 },
+    { label: t.stageYoungTree, desc: t.stageYoungTreeDesc, progress: 80 },
+    { label: t.stageMatureTree, desc: t.stageMatureTreeDesc, progress: 100 }
   ];
 
   const plantTree = () => {
@@ -46,7 +46,7 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
           
           onTreePlanted(impact);
           addPlantedTree("Tree");
-          toast.success(t.plantTree + " 🌳 Successfully Grown!");
+          toast.success(t.plantTree + " 🌳 " + t.successfullyGrown);
           
           return prev;
         }
@@ -167,12 +167,12 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
           className="text-lg px-12 py-6 shadow-lg hover:shadow-xl transition-all"
         >
           <Sprout className="mr-2 h-6 w-6" />
-          {isGrowing ? "Growing..." : t.plantNow}
+          {isGrowing ? t.growing : t.plantNow}
         </Button>
         
         {treeStage === 5 && (
           <p className="mt-4 text-green-600 dark:text-green-400 font-semibold animate-pulse">
-            🎉 Congratulations! Your tree is now producing oxygen! 🌳
+            🎉 {t.congratsOxygen} 🌳
           </p>
         )}
       </div>

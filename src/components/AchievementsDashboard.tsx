@@ -36,62 +36,62 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const achievementTiers = [
     { 
       icon: Star, 
-      name: "Green Beginner", 
+      name: t.tierBeginner, 
       threshold: 1, 
       color: "text-green-500",
       bgColor: "bg-green-500/10",
       borderColor: "border-green-500/30",
-      desc: "Started your eco journey",
+      desc: t.tierBeginnerDesc,
       seedReward: 10
     },
     { 
       icon: Sparkles, 
-      name: "Eco Explorer", 
+      name: t.tierExplorer, 
       threshold: 10, 
       color: "text-teal-500",
       bgColor: "bg-teal-500/10",
       borderColor: "border-teal-500/30",
-      desc: "Actively planting trees",
+      desc: t.tierExplorerDesc,
       seedReward: 25
     },
     { 
       icon: Award, 
-      name: "Forest Friend", 
+      name: t.tierForestFriend, 
       threshold: 25, 
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
       borderColor: "border-emerald-500/30",
-      desc: "Creating mini forests",
+      desc: t.tierForestFriendDesc,
       seedReward: 50
     },
     { 
       icon: Trophy, 
-      name: "Green Guardian", 
+      name: t.tierGuardian, 
       threshold: 50, 
       color: "text-cyan-500",
       bgColor: "bg-cyan-500/10",
       borderColor: "border-cyan-500/30",
-      desc: "Protecting the environment",
+      desc: t.tierGuardianDesc,
       seedReward: 100
     },
     { 
       icon: Crown, 
-      name: "Village Hero", 
+      name: t.tierVillageHero, 
       threshold: 100, 
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/30",
-      desc: "Community role model",
+      desc: t.tierVillageHeroDesc,
       seedReward: 200
     },
     { 
       icon: Target, 
-      name: "Earth Saver", 
+      name: t.tierEarthSaver, 
       threshold: 200, 
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
       borderColor: "border-purple-500/30",
-      desc: "Planet guardian champion",
+      desc: t.tierEarthSaverDesc,
       seedReward: 500
     },
   ];
@@ -110,43 +110,43 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const specialBadges = [
     { 
       id: "first_tree", 
-      name: "🌱 First Sapling", 
-      desc: "Planted your first tree", 
+      name: `🌱 ${t.badgeFirstSapling}`, 
+      desc: t.badgeFirstSaplingDesc, 
       condition: () => safeProgress.treesPlanted >= 1,
       seeds: 5
     },
     { 
       id: "eco_warrior", 
-      name: "⚔️ Eco Warrior", 
-      desc: "Planted 10 trees", 
+      name: `⚔️ ${t.badgeEcoWarrior}`, 
+      desc: t.badgeEcoWarriorDesc, 
       condition: () => safeProgress.treesPlanted >= 10,
       seeds: 15
     },
     { 
       id: "community_mentor", 
-      name: "👥 Community Mentor", 
-      desc: "Active community engagement", 
+      name: `👥 ${t.badgeCommunityMentor}`, 
+      desc: t.badgeCommunityMentorDesc, 
       condition: () => safeProgress.badges.length >= 3,
       seeds: 20
     },
     { 
       id: "sustainability_leader", 
-      name: "🌍 Sustainability Leader", 
-      desc: "Planted 100 trees", 
+      name: `🌍 ${t.badgeSustainabilityLeader}`, 
+      desc: t.badgeSustainabilityLeaderDesc, 
       condition: () => safeProgress.treesPlanted >= 100,
       seeds: 50
     },
     { 
       id: "water_guardian", 
-      name: "💧 Water Guardian", 
-      desc: "Saved significant water", 
+      name: `💧 ${t.badgeWaterGuardian}`, 
+      desc: t.badgeWaterGuardianDesc, 
       condition: () => (safeProgress.waterSaved || 0) >= 1000,
       seeds: 25
     },
     { 
       id: "climate_hero", 
-      name: "🌤️ Climate Hero", 
-      desc: "Reduced significant CO₂", 
+      name: `🌤️ ${t.badgeClimateHero}`, 
+      desc: t.badgeClimateHeroDesc, 
       condition: () => safeProgress.co2Reduced >= 500,
       seeds: 30
     },
@@ -212,7 +212,7 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   }, [safeProgress.treesPlanted]);
 
   const shareAchievement = () => {
-    const text = `I've planted ${safeProgress.treesPlanted} trees and earned ${safeProgress.seedPoints} Seed Points on GreenGrow! Join me in making the planet greener! 🌱🌍`;
+    const text = `I've planted ${safeProgress.treesPlanted} ${t.treesPlanted.toLowerCase()} and earned ${safeProgress.seedPoints} ${t.seeds} on GreenGrow! Join me in making the planet greener! 🌱🌍`;
     if (navigator.share) {
       navigator.share({
         title: 'My GreenGrow Achievement',
@@ -232,9 +232,9 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
           <Trophy className="h-12 w-12 text-purple-600 animate-pulse" />
         </div>
         <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-          🏆 Achievements & Rewards
+          🏆 {t.achievementsRewards}
         </h2>
-        <p className="text-muted-foreground text-lg">Track your journey, earn seeds, unlock rewards</p>
+        <p className="text-muted-foreground text-lg">{t.trackJourney}</p>
       </div>
 
       {/* Seed Points Counter */}
@@ -246,8 +246,8 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
                 <Zap className="h-10 w-10 text-yellow-600" />
               </div>
               <div>
-                <h3 className="text-3xl font-bold text-yellow-600">{safeProgress.seedPoints} Seeds</h3>
-                <p className="text-muted-foreground">Your eco-currency balance</p>
+                <h3 className="text-3xl font-bold text-yellow-600">{safeProgress.seedPoints} {t.seeds}</h3>
+                <p className="text-muted-foreground">{t.ecoCurrency}</p>
               </div>
             </div>
             <div className="flex-1 max-w-md space-y-2">
