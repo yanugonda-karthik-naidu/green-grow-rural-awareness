@@ -1,103 +1,135 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, Brain } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2 } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
-import { useUserProgress } from "@/hooks/useLocalStorage";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserProgress } from "@/hooks/useUserProgress";
+import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
 import { AchievementsDashboard } from "@/components/AchievementsDashboard";
 import { TreeLibrary } from "@/components/TreeLibrary";
 import { Quiz } from "@/components/Quiz";
-import { QuizGames } from "@/components/QuizGames";
 import { MiniGames } from "@/components/MiniGames";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall } from "@/components/CommunityWall";
 import { LearnSection } from "@/components/LearnSection";
 import heroImage from "@/assets/hero-forest.jpg";
+import confetti from "canvas-confetti";
 
 const Index = () => {
   const [language, setLanguage] = useState<Language>('en');
-  const [progress, setProgress] = useUserProgress();
   const [currentSlogan, setCurrentSlogan] = useState(0);
-  
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { 
+    progress, 
+    plantedTrees, 
+    badges, 
+    achievements, 
+    loading: progressLoading,
+    updateProgress: dbUpdateProgress,
+    addPlantedTree,
+    addBadge,
+    addAchievement,
+    refetch
+  } = useUserProgress(user?.id);
+
+  // Realtime updates
+  useRealtimeProgress(() => {
+    refetch();
+  });
+
   const t = translations[language];
 
-  const updateProgress = (newData: Partial<typeof progress>) => {
-    const treesAdded = newData.treesPlanted || 0;
-    const updated = {
-      ...progress,
-      treesPlanted: (progress.treesPlanted || 0) + treesAdded,
-      co2Reduced: (progress.co2Reduced || 0) + (newData.co2Reduced || 0),
-      oxygenGenerated: (progress.oxygenGenerated || 0) + (newData.oxygenGenerated || 0),
-      wildlifeSheltered: (progress.wildlifeSheltered || 0) + (newData.wildlifeSheltered || 0),
-      waterSaved: (progress.waterSaved || 0) + (newData.waterSaved || 0),
-      greenAreaExpanded: (progress.greenAreaExpanded || 0) + (newData.greenAreaExpanded || 0),
-      energySaved: (progress.energySaved || 0) + (newData.energySaved || 0),
-    };
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
+  if (authLoading || progressLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !progress) {
+    return null;
+  }
+
+  const updateProgress = async (newData: Partial<{ treesPlanted?: number; co2Reduced?: number; oxygenGenerated?: number; wildlifeSheltered?: number; waterSaved?: number; greenAreaExpanded?: number; energySaved?: number }>) => {
+    const treesAdded = newData.treesPlanted || 0;
+    
     // Calculate seed rewards
     let seedsEarned = 0;
     if (treesAdded > 0) {
       seedsEarned += treesAdded * 5; // 5 seeds per tree
     }
 
-    // Award badges and seeds
-    const badges = [...progress.badges];
-    const achievementTimeline = [...(progress.achievementTimeline || [])];
+    // Check and award badges
+    const currentTrees = progress.trees_planted || 0;
+    const newTreesTotal = currentTrees + treesAdded;
+    const currentBadgeNames = badges.map(b => b.badge_name);
     
-    if (updated.treesPlanted >= 1 && !badges.includes(t.badges.starter)) {
-      badges.push(t.badges.starter);
+    if (newTreesTotal >= 1 && !currentBadgeNames.includes(t.badges.starter)) {
+      await addBadge(t.badges.starter);
       seedsEarned += 10;
-      achievementTimeline.unshift({
-        date: new Date().toLocaleDateString(),
-        achievement: `Earned "${t.badges.starter}" badge`,
-        seedsEarned: 10
+      await addAchievement(`Earned "${t.badges.starter}" badge`, 10);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
       });
     }
-    if (updated.treesPlanted >= 10 && !badges.includes(t.badges.hero)) {
-      badges.push(t.badges.hero);
+    if (newTreesTotal >= 10 && !currentBadgeNames.includes(t.badges.hero)) {
+      await addBadge(t.badges.hero);
       seedsEarned += 25;
-      achievementTimeline.unshift({
-        date: new Date().toLocaleDateString(),
-        achievement: `Earned "${t.badges.hero}" badge`,
-        seedsEarned: 25
+      await addAchievement(`Earned "${t.badges.hero}" badge`, 25);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
       });
     }
-    if (updated.treesPlanted >= 50 && !badges.includes(t.badges.guardian)) {
-      badges.push(t.badges.guardian);
+    if (newTreesTotal >= 50 && !currentBadgeNames.includes(t.badges.guardian)) {
+      await addBadge(t.badges.guardian);
       seedsEarned += 100;
-      achievementTimeline.unshift({
-        date: new Date().toLocaleDateString(),
-        achievement: `Earned "${t.badges.guardian}" badge`,
-        seedsEarned: 100
+      await addAchievement(`Earned "${t.badges.guardian}" badge`, 100);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
       });
     }
-    if (updated.treesPlanted >= 100 && !badges.includes(t.badges.maker)) {
-      badges.push(t.badges.maker);
+    if (newTreesTotal >= 100 && !currentBadgeNames.includes(t.badges.maker)) {
+      await addBadge(t.badges.maker);
       seedsEarned += 200;
-      achievementTimeline.unshift({
-        date: new Date().toLocaleDateString(),
-        achievement: `Earned "${t.badges.maker}" badge`,
-        seedsEarned: 200
+      await addAchievement(`Earned "${t.badges.maker}" badge`, 200);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
       });
     }
 
     if (treesAdded > 0) {
-      achievementTimeline.unshift({
-        date: new Date().toLocaleDateString(),
-        achievement: `Planted ${treesAdded} tree${treesAdded > 1 ? 's' : ''}`,
-        seedsEarned: treesAdded * 5
-      });
+      await addAchievement(`Planted ${treesAdded} tree${treesAdded > 1 ? 's' : ''}`, treesAdded * 5);
     }
 
-    setProgress({ 
-      ...updated, 
-      badges,
-      seedPoints: (progress.seedPoints || 0) + seedsEarned,
-      achievementTimeline: achievementTimeline.slice(0, 20) // Keep last 20 entries
+    // Update progress in database
+    await dbUpdateProgress({
+      ...newData,
+      seed_points: seedsEarned,
     });
   };
 
@@ -116,7 +148,6 @@ const Index = () => {
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
-    { id: 'funquiz', label: 'Fun Quiz', icon: Brain },
     { id: 'games', label: 'Mini Games', icon: Gamepad2 },
     { id: 'voice', label: t.voiceAssistant, icon: Mic },
     { id: 'community', label: t.communityWall, icon: Users },
@@ -144,15 +175,24 @@ const Index = () => {
           </div>
         </div>
         
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={signOut}
+            className="gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2 h-auto p-2 bg-card">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
@@ -166,15 +206,29 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="plant" className="space-y-6">
-            <PlantTree language={language} onTreePlanted={updateProgress} t={t} />
+            <PlantTree 
+              language={language} 
+              onTreePlanted={updateProgress} 
+              addPlantedTree={addPlantedTree}
+              t={t} 
+            />
           </TabsContent>
 
           <TabsContent value="impact">
-            <ImpactCounter progress={progress} t={t} />
+            <ImpactCounter 
+              progress={progress} 
+              plantedTrees={plantedTrees}
+              t={t} 
+            />
           </TabsContent>
 
           <TabsContent value="achievements">
-            <AchievementsDashboard progress={progress} t={t} />
+            <AchievementsDashboard 
+              progress={progress}
+              badges={badges}
+              achievements={achievements}
+              t={t} 
+            />
           </TabsContent>
 
           <TabsContent value="library">
@@ -197,15 +251,12 @@ const Index = () => {
             />
           </TabsContent>
 
-          <TabsContent value="funquiz">
-            <QuizGames 
+          <TabsContent value="games">
+            <MiniGames 
               progress={progress} 
-              onProgressUpdate={updateProgress}
-              t={t}
+              onProgressUpdate={(update) => dbUpdateProgress({ seed_points: update.seedPoints })}
             />
           </TabsContent>
-
-          <TabsContent value="games">
             <MiniGames 
               progress={progress} 
               onProgressUpdate={updateProgress}

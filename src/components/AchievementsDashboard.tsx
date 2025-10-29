@@ -13,7 +13,7 @@ interface AchievementsDashboardProps {
   t: any;
 }
 
-export const AchievementsDashboard = ({ progress, t }: AchievementsDashboardProps) => {
+export const AchievementsDashboard = ({ progress, badges, achievements, t }: AchievementsDashboardProps) => {
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [showRewardAnimation, setShowRewardAnimation] = useState(false);
 

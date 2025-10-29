@@ -4,16 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Sprout } from "lucide-react";
 import { toast } from "sonner";
-import { UserProgress } from "@/hooks/useLocalStorage";
-import treeStagesImg from "@/assets/tree-stages.png";
 
 interface PlantTreeProps {
   language: string;
-  onTreePlanted: (progress: Partial<UserProgress>) => void;
+  onTreePlanted: (progress: any) => void;
+  addPlantedTree: (treeName: string) => Promise<void>;
   t: any;
 }
 
-export const PlantTree = ({ language, onTreePlanted, t }: PlantTreeProps) => {
+export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantTreeProps) => {
   const [treeStage, setTreeStage] = useState(0);
   const [isGrowing, setIsGrowing] = useState(false);
 
@@ -46,6 +45,7 @@ export const PlantTree = ({ language, onTreePlanted, t }: PlantTreeProps) => {
           };
           
           onTreePlanted(impact);
+          addPlantedTree("Tree");
           toast.success(t.plantTree + " 🌳 Successfully Grown!");
           
           return prev;

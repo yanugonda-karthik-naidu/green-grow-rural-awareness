@@ -14,7 +14,7 @@ interface ImpactCounterProps {
   t: any;
 }
 
-export const ImpactCounter = ({ progress, t }: ImpactCounterProps) => {
+export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps) => {
   const [selectedStat, setSelectedStat] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
