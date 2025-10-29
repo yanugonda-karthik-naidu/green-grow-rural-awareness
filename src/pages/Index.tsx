@@ -134,10 +134,16 @@ const Index = () => {
       await addAchievement(`Planted ${treesAdded} tree${treesAdded > 1 ? 's' : ''}`, treesAdded * 5);
     }
 
-    // Update progress in database
+    // Update progress in database - map camelCase to snake_case
     await dbUpdateProgress({
-      ...newData,
-      seed_points: seedsEarned,
+      trees_planted: (progress.trees_planted || 0) + (newData.treesPlanted || 0),
+      co2_reduced: (progress.co2_reduced || 0) + (newData.co2Reduced || 0),
+      oxygen_generated: (progress.oxygen_generated || 0) + (newData.oxygenGenerated || 0),
+      wildlife_sheltered: (progress.wildlife_sheltered || 0) + (newData.wildlifeSheltered || 0),
+      water_saved: (progress.water_saved || 0) + (newData.waterSaved || 0),
+      green_area_expanded: (progress.green_area_expanded || 0) + (newData.greenAreaExpanded || 0),
+      energy_saved: (progress.energy_saved || 0) + (newData.energySaved || 0),
+      seed_points: (progress.seed_points || 0) + seedsEarned,
     });
   };
 

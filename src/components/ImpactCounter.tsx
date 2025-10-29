@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TreeDeciduous, Cloud, Wind, Bird, Trophy, Star, Sparkles, Calendar, Droplet, Map, Zap, TrendingUp, Target, Award, Share2, Volume2 } from "lucide-react";
+import { TreeDeciduous, Cloud, Wind, Bird, Calendar, Droplet, Map, Zap, TrendingUp, Target, Sparkles, Award, Volume2 } from "lucide-react";
 import { UserProgress, PlantedTree } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
 import { Button } from "@/components/ui/button";
@@ -114,34 +114,6 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
   const maxTrees = 100;
   const progressPercent = Math.min((safeProgress.treesPlanted / maxTrees) * 100, 100);
 
-  // Enhanced achievement tiers
-  const achievementTiers = [
-    { icon: Star, name: "Green Beginner", threshold: 1, color: "text-green-400", bgColor: "bg-green-500/10", desc: "Started your eco journey" },
-    { icon: TreeDeciduous, name: "Eco Explorer", threshold: 10, color: "text-teal-400", bgColor: "bg-teal-500/10", desc: "Actively planting trees" },
-    { icon: Sparkles, name: "Forest Friend", threshold: 25, color: "text-emerald-400", bgColor: "bg-emerald-500/10", desc: "Creating mini forests" },
-    { icon: Award, name: "Green Guardian", threshold: 50, color: "text-cyan-400", bgColor: "bg-cyan-500/10", desc: "Protecting the environment" },
-    { icon: Trophy, name: "Village Hero", threshold: 100, color: "text-blue-400", bgColor: "bg-blue-500/10", desc: "Community role model" },
-    { icon: Target, name: "Earth Saver", threshold: 200, color: "text-purple-400", bgColor: "bg-purple-500/10", desc: "Planet guardian champion" },
-  ];
-
-  const currentTier = achievementTiers
-    .slice()
-    .reverse()
-    .find(tier => safeProgress.treesPlanted >= tier.threshold) || achievementTiers[0];
-
-  const nextTier = achievementTiers.find(tier => tier.threshold > safeProgress.treesPlanted);
-
-  // Enhanced badges with more types
-  const allBadgeTypes = [
-    { id: "water_saver", name: "💧 Water Saver", desc: "Regular tree maintenance", condition: () => safeProgress.plantedTrees.length >= 3 },
-    { id: "climate_warrior", name: "🌤 Climate Warrior", desc: "Active in all seasons", condition: () => safeProgress.treesPlanted >= 15 },
-    { id: "eco_educator", name: "🐝 Eco Educator", desc: "Completed awareness quiz", condition: () => safeProgress.badges.includes("Quiz Master") },
-    { id: "bird_saver", name: "🕊 Bird Saver", desc: "Increased wildlife shelter", condition: () => safeProgress.wildlifeSheltered >= 10 },
-    { id: "soil_protector", name: "💚 Soil Protector", desc: "Planted diverse tree types", condition: () => safeProgress.plantedTrees.length >= 5 },
-  ];
-
-  const earnedBadges = allBadgeTypes.filter(badge => badge.condition());
-
   // Impact distribution for pie chart
   const impactData = [
     { name: 'CO₂ Reduced', value: safeProgress.co2Reduced, color: '#0ea5e9' },
@@ -159,15 +131,6 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
         { week: 'Week 3', trees: 3, co2: 75 },
         { week: 'Week 4', trees: Math.max(1, safeProgress.treesPlanted), co2: safeProgress.co2Reduced },
       ];
-
-  // Leaderboard data
-  const leaderboardData = [
-    { rank: 1, name: "Ravi Kumar", trees: 127, impact: 3175, avatar: "🌟" },
-    { rank: 2, name: "Priya Sharma", trees: 98, impact: 2450, avatar: "🌿" },
-    { rank: 3, name: "You", trees: safeProgress.treesPlanted, impact: safeProgress.co2Reduced, avatar: "🌱" },
-    { rank: 4, name: "Amit Patel", trees: 76, impact: 1900, avatar: "🌲" },
-    { rank: 5, name: "Sneha Reddy", trees: 64, impact: 1600, avatar: "🍃" },
-  ].sort((a, b) => b.trees - a.trees).map((item, idx) => ({ ...item, rank: idx + 1 }));
 
   // AI Suggestions
   const aiSuggestions = [
@@ -358,7 +321,7 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
               🌿 Your greenery supports <strong>{safeProgress.wildlifeSheltered} birds</strong>, covers <strong>{safeProgress.greenAreaExpanded} m²</strong> of shade area, and absorbs <strong>{safeProgress.co2Reduced} kg</strong> of CO₂ every year.
             </p>
             <p className="text-md text-muted-foreground">
-              🎯 At this pace, you'll become a <strong>{nextTier?.name || "Earth Saver"}</strong> in {nextTier ? Math.ceil((nextTier.threshold - safeProgress.treesPlanted) / (safeProgress.treesPlanted || 1)) : 0} days!
+              🎯 Keep planting more trees to increase your environmental impact!
             </p>
             <Button 
               onClick={() => speakMotivation(`You have planted ${safeProgress.treesPlanted} trees and reduced ${safeProgress.co2Reduced} kilograms of carbon dioxide. Keep up the amazing work!`)}
@@ -436,187 +399,6 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
         </Card>
       )}
 
-      {/* Hall of Achievements */}
-      <Card className="overflow-hidden border-2 border-yellow-500/30 shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10">
-          <CardTitle className="text-3xl font-bold text-yellow-600 flex items-center gap-3">
-            <Trophy className="h-8 w-8 animate-pulse" />
-            🌟 Hall of Achievements
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Celebrate your milestones and eco-journey!</p>
-        </CardHeader>
-        <CardContent className="p-8 space-y-8">
-          {/* Personal Stats Card */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-orange-500/10 border-2 border-yellow-500/30 shadow-lg relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/10 rounded-full blur-3xl" />
-            <div className="relative grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
-              <div className="flex flex-col items-center">
-                <div className={`${currentTier.bgColor} p-6 rounded-2xl mb-2`}>
-                  <currentTier.icon className={`h-16 w-16 ${currentTier.color}`} />
-                </div>
-                <p className="text-xs text-muted-foreground">Current Rank</p>
-                <h3 className={`text-xl font-bold ${currentTier.color}`}>{currentTier.name}</h3>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-emerald-600">{safeProgress.treesPlanted}</p>
-                <p className="text-xs text-muted-foreground">Total Trees</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-sky-600">{safeProgress.co2Reduced}</p>
-                <p className="text-xs text-muted-foreground">Impact Score</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-amber-600">{earnedBadges.length}</p>
-                <p className="text-xs text-muted-foreground">Badges Earned</p>
-              </div>
-              <div className="text-center">
-                {nextTier && (
-                  <>
-                    <p className="text-2xl font-bold text-purple-600">{nextTier.threshold - safeProgress.treesPlanted}</p>
-                    <p className="text-xs text-muted-foreground">Trees to {nextTier.name}</p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Achievement Tiers */}
-          <div>
-            <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500" />
-              Achievement Ranks
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {achievementTiers.map((tier, idx) => {
-                const isUnlocked = safeProgress.treesPlanted >= tier.threshold;
-                const isCurrent = tier.name === currentTier.name;
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                      isCurrent
-                        ? 'border-yellow-500 bg-gradient-to-br from-yellow-500/20 to-amber-500/10 shadow-xl scale-105'
-                        : isUnlocked
-                        ? 'border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5'
-                        : 'border-border/30 bg-muted/30 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`${tier.bgColor} p-3 rounded-xl ${isUnlocked ? '' : 'grayscale'}`}>
-                        <tier.icon className={`h-8 w-8 ${tier.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <h5 className={`font-bold ${tier.color}`}>{tier.name}</h5>
-                        <p className="text-xs text-muted-foreground">{tier.threshold}+ trees</p>
-                      </div>
-                      {isUnlocked && <Sparkles className="h-5 w-5 text-yellow-500 animate-pulse" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{tier.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Badges Showcase */}
-          <div>
-            <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-500" />
-              Special Badges
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allBadgeTypes.map((badge, idx) => {
-                const isEarned = earnedBadges.some(eb => eb.id === badge.id);
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`group relative overflow-hidden p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
-                      isEarned
-                        ? 'border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-pink-500/5'
-                        : 'border-border/30 bg-muted/30 opacity-50'
-                    }`}
-                  >
-                    {isEarned && (
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
-                    )}
-                    <div className="relative flex items-center gap-4">
-                      <div className={`text-4xl ${isEarned ? '' : 'grayscale'}`}>
-                        {badge.name.split(' ')[0]}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-lg mb-1">{badge.name.split(' ').slice(1).join(' ')}</h4>
-                        <p className="text-xs text-muted-foreground">{badge.desc}</p>
-                      </div>
-                      {isEarned && (
-                        <Sparkles className="h-6 w-6 text-purple-500 animate-pulse" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Leaderboard */}
-          <div>
-            <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-amber-500" />
-              Community Leaderboard
-            </h4>
-            <div className="space-y-3">
-              {leaderboardData.map((entry, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
-                    entry.name === "You"
-                      ? 'border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-green-500/5 shadow-lg'
-                      : 'border-border/30 bg-card'
-                  }`}
-                >
-                  <div className={`text-2xl font-bold ${
-                    entry.rank === 1 ? 'text-yellow-500' :
-                    entry.rank === 2 ? 'text-gray-400' :
-                    entry.rank === 3 ? 'text-amber-600' :
-                    'text-muted-foreground'
-                  }`}>
-                    #{entry.rank}
-                  </div>
-                  <div className="text-3xl">{entry.avatar}</div>
-                  <div className="flex-1">
-                    <h5 className="font-bold text-lg">{entry.name}</h5>
-                    <p className="text-xs text-muted-foreground">{entry.trees} trees planted</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-emerald-600">{entry.impact}</p>
-                    <p className="text-xs text-muted-foreground">Impact Score</p>
-                  </div>
-                  {entry.rank <= 3 && (
-                    <Trophy className={`h-6 w-6 ${
-                      entry.rank === 1 ? 'text-yellow-500' :
-                      entry.rank === 2 ? 'text-gray-400' :
-                      'text-amber-600'
-                    }`} />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Share Achievement */}
-          <div className="text-center p-6 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-2 border-blue-500/20">
-            <h4 className="text-lg font-bold mb-3">Share Your Achievement!</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Inspire others in your community to join the green revolution
-            </p>
-            <Button className="gap-2">
-              <Share2 className="h-4 w-4" />
-              Share My Impact
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Confetti Effect */}
       {showConfetti && (
