@@ -14,7 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      achievements: {
+        Row: {
+          achievement_text: string
+          created_at: string | null
+          id: string
+          seeds_earned: number | null
+          user_id: string
+        }
+        Insert: {
+          achievement_text: string
+          created_at?: string | null
+          id?: string
+          seeds_earned?: number | null
+          user_id: string
+        }
+        Update: {
+          achievement_text?: string
+          created_at?: string | null
+          id?: string
+          seeds_earned?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      community_posts: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          likes: number | null
+          user_id: string
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          likes?: number | null
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          likes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planted_trees: {
+        Row: {
+          created_at: string | null
+          id: string
+          planted_date: string | null
+          stage: number | null
+          tree_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          planted_date?: string | null
+          stage?: number | null
+          tree_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          planted_date?: string | null
+          stage?: number | null
+          tree_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_name: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_name: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_name?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          co2_reduced: number | null
+          created_at: string | null
+          energy_saved: number | null
+          green_area_expanded: number | null
+          id: string
+          oxygen_generated: number | null
+          seed_points: number | null
+          trees_planted: number | null
+          updated_at: string | null
+          user_id: string
+          water_saved: number | null
+          wildlife_sheltered: number | null
+        }
+        Insert: {
+          co2_reduced?: number | null
+          created_at?: string | null
+          energy_saved?: number | null
+          green_area_expanded?: number | null
+          id?: string
+          oxygen_generated?: number | null
+          seed_points?: number | null
+          trees_planted?: number | null
+          updated_at?: string | null
+          user_id: string
+          water_saved?: number | null
+          wildlife_sheltered?: number | null
+        }
+        Update: {
+          co2_reduced?: number | null
+          created_at?: string | null
+          energy_saved?: number | null
+          green_area_expanded?: number | null
+          id?: string
+          oxygen_generated?: number | null
+          seed_points?: number | null
+          trees_planted?: number | null
+          updated_at?: string | null
+          user_id?: string
+          water_saved?: number | null
+          wildlife_sheltered?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
