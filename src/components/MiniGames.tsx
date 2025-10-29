@@ -7,12 +7,12 @@ import {
   Gamepad2, TreeDeciduous, Leaf, Trash2, Award, 
   RotateCcw, Target, Timer, Zap
 } from "lucide-react";
-import { UserProgress } from "@/hooks/useLocalStorage";
+import { UserProgress } from "@/hooks/useUserProgress";
 import confetti from 'canvas-confetti';
 
 interface MiniGamesProps {
   progress: UserProgress;
-  onProgressUpdate: (update: Partial<UserProgress>) => void;
+  onProgressUpdate: (update: { seedPoints: number }) => void;
 }
 
 type GameType = 'forest' | 'match' | 'clean' | null;

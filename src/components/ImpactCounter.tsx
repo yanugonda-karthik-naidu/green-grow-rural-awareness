@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TreeDeciduous, Cloud, Wind, Bird, Trophy, Star, Sparkles, Calendar, Droplet, Map, Zap, TrendingUp, Target, Award, Share2, Volume2 } from "lucide-react";
-import { UserProgress } from "@/hooks/useLocalStorage";
+import { UserProgress, PlantedTree } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface ImpactCounterProps {
   progress: UserProgress;
+  plantedTrees: PlantedTree[];
   t: any;
 }
 
@@ -18,15 +19,23 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
   const [selectedStat, setSelectedStat] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Provide defaults for new fields that might not exist in localStorage
   const safeProgress = {
-    ...progress,
-    waterSaved: progress.waterSaved || 0,
-    greenAreaExpanded: progress.greenAreaExpanded || 0,
-    energySaved: progress.energySaved || 0,
-    seedPoints: progress.seedPoints || 0,
-    weeklyProgress: progress.weeklyProgress || [],
-    achievementTimeline: progress.achievementTimeline || []
+    treesPlanted: progress.trees_planted || 0,
+    co2Reduced: progress.co2_reduced || 0,
+    oxygenGenerated: progress.oxygen_generated || 0,
+    wildlifeSheltered: progress.wildlife_sheltered || 0,
+    waterSaved: progress.water_saved || 0,
+    greenAreaExpanded: progress.green_area_expanded || 0,
+    energySaved: progress.energy_saved || 0,
+    seedPoints: progress.seed_points || 0,
+    plantedTrees: plantedTrees,
+    badges: [],
+    weeklyProgress: [
+      { week: 'Week 1', trees: 2, co2: 50 },
+      { week: 'Week 2', trees: 5, co2: 125 },
+      { week: 'Week 3', trees: 3, co2: 75 },
+      { week: 'Week 4', trees: Math.max(1, progress.trees_planted || 0), co2: progress.co2_reduced || 0 },
+    ],
   };
 
   const stats = [
@@ -377,7 +386,7 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
             <ScrollArea className="h-[400px] pr-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {safeProgress.plantedTrees.map((tree, idx) => {
-                  const treeInfo = treeData.find(t => t.nameEn === tree.name);
+                  const treeInfo = treeData.find(t => t.nameEn === tree.tree_name);
                   const growthStage = Math.min(tree.stage, 6);
                   const growthPercent = (growthStage / 6) * 100;
                   
@@ -390,7 +399,7 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
                         {treeInfo?.image && (
                           <img 
                             src={treeInfo.image} 
-                            alt={tree.name}
+                            alt={tree.tree_name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           />
                         )}
@@ -400,10 +409,10 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
                         </div>
                       </div>
                       <div className="p-4">
-                        <h4 className="font-bold text-lg mb-2 text-primary">{tree.name}</h4>
+                        <h4 className="font-bold text-lg mb-2 text-primary">{tree.tree_name}</h4>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                           <Calendar className="h-3 w-3" />
-                          <span>Planted: {new Date(tree.plantedDate).toLocaleDateString()}</span>
+                          <span>Planted: {new Date(tree.planted_date).toLocaleDateString()}</span>
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between text-xs">

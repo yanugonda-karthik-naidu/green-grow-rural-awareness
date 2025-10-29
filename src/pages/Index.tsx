@@ -257,11 +257,6 @@ const Index = () => {
               onProgressUpdate={(update) => dbUpdateProgress({ seed_points: update.seedPoints })}
             />
           </TabsContent>
-            <MiniGames 
-              progress={progress} 
-              onProgressUpdate={updateProgress}
-            />
-          </TabsContent>
 
           <TabsContent value="voice">
             <VoiceAssistant language={language} t={t} />

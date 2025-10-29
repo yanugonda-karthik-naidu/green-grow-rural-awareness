@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Star, Sparkles, Award, Target, Crown, Gift, TrendingUp, Calendar, Zap, Users, Share2 } from "lucide-react";
-import { UserProgress } from "@/hooks/useLocalStorage";
+import { UserProgress, Badge as UserBadge, Achievement } from "@/hooks/useUserProgress";
 import confetti from 'canvas-confetti';
 
 interface AchievementsDashboardProps {
   progress: UserProgress;
+  badges: UserBadge[];
+  achievements: Achievement[];
   t: any;
 }
 
@@ -18,9 +20,16 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const [showRewardAnimation, setShowRewardAnimation] = useState(false);
 
   const safeProgress = {
-    ...progress,
-    seedPoints: progress.seedPoints || 0,
-    achievementTimeline: progress.achievementTimeline || []
+    treesPlanted: progress.trees_planted || 0,
+    seedPoints: progress.seed_points || 0,
+    co2Reduced: progress.co2_reduced || 0,
+    waterSaved: progress.water_saved || 0,
+    badges: badges.map(b => b.badge_name),
+    achievementTimeline: achievements.map(a => ({
+      date: new Date(a.created_at).toLocaleDateString(),
+      achievement: a.achievement_text,
+      seedsEarned: a.seeds_earned
+    }))
   };
 
   // Achievement tiers with seed rewards
