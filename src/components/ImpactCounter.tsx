@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TreeDeciduous, Cloud, Wind, Bird, Calendar, Droplet, Map, Zap, TrendingUp, Target, Sparkles, Award, Volume2 } from "lucide-react";
+import { TreeDeciduous, Cloud, Wind, Bird, Calendar, Droplet, Map, Zap, TrendingUp, Sparkles, Award, Volume2 } from "lucide-react";
 import { UserProgress, PlantedTree } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,7 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
           <div className="mt-8 space-y-3 bg-gradient-to-r from-emerald-500/5 via-green-500/5 to-teal-500/5 p-6 rounded-xl border-2 border-emerald-500/20">
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                <Target className="h-4 w-4 text-emerald-600" />
+                <TreeDeciduous className="h-4 w-4 text-emerald-600" />
                 {t.myProgress}
               </span>
               <span className="font-bold text-emerald-600 text-lg">
