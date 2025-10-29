@@ -1,16 +1,16 @@
-# GreenGrow – Community Service Project #
+# GreenGrow – Community Service Project 
    Bridging Technology with Sustainability and Community Impact
-# Project Overview #
+# Project Overview 
 
 GreenGrow is a digital platform designed to motivate communities toward environmental sustainability through interactive learning, gamification, and collective action.
 It connects awareness with real-world activities — encouraging users to learn, grow, and contribute to a greener future.
 
-# Idea in Brief #
+# Idea in Brief 
 
 GreenGrow transforms environmental care into a fun and interactive experience.
 Through quizzes, learning modules, and community activities, users earn eco-points (Seeds) that reflect their real-world impact on nature.
 
-# Key Innovations #
+# Key Innovations 
 
 🌾 Interactive Community Hub: Enables users to share ideas, activities, and environmental progress.
 
@@ -71,7 +71,7 @@ Team focuses on leveraging technology for social and environmental good.
 <img width="1869" height="908" alt="Screenshot 2025-10-30 015229" src="https://github.com/user-attachments/assets/cfd65305-6c89-46b0-b985-d73f92160a82" />
 <img width="1876" height="903" alt="Screenshot 2025-10-30 015257" src="https://github.com/user-attachments/assets/959cb19f-0406-48e0-9526-35c430b97180" />
 
-# Achievemen ts & rewards
+# Achievements & rewards
 
 <img width="1878" height="893" alt="Screenshot 2025-10-30 015344" src="https://github.com/user-attachments/assets/231c03a7-c6a6-4b84-b6d8-f59b11a52e82" />
 
