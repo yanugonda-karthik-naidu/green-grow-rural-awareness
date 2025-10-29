@@ -134,12 +134,12 @@ const Index = () => {
   };
 
   // Rotate slogans
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlogan((prev) => (prev + 1) % t.slogans.length);
     }, 5000);
     return () => clearInterval(interval);
-  });
+  }, [t.slogans.length]);
 
   const navItems = [
     { id: 'plant', label: t.plantTree, icon: TreeDeciduous },
