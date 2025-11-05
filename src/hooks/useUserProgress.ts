@@ -20,6 +20,16 @@ export interface PlantedTree {
   tree_name: string;
   planted_date: string;
   stage: number;
+  image_path?: string;
+  species?: string;
+  description?: string;
+  location?: string;
+  growth_stage?: number;
+  impact_co2_kg?: number;
+  impact_o2_l_per_day?: number;
+  area_m2?: number;
+  is_public?: boolean;
+  metadata?: any;
 }
 
 export interface Badge {

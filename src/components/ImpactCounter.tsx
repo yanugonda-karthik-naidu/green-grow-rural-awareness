@@ -353,15 +353,20 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
                   const growthStage = Math.min(tree.stage, 6);
                   const growthPercent = (growthStage / 6) * 100;
                   
+                  // Get the uploaded image from Supabase storage or fallback to tree data
+                  const displayImage = tree.image_path 
+                    ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/plant-images/${tree.image_path}`
+                    : treeInfo?.image;
+                  
                   return (
                     <Card 
                       key={idx} 
                       className="overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:scale-105 border-primary/20"
                     >
                       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5">
-                        {treeInfo?.image && (
+                        {displayImage && (
                           <img 
-                            src={treeInfo.image} 
+                            src={displayImage} 
                             alt={tree.tree_name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           />

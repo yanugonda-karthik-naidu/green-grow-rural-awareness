@@ -9,6 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Heart, ThumbsUp, Sprout, Leaf, MessageCircle, Share2, Image as ImageIcon, Video, Award, Trophy, MapPin, Globe, Sparkles, TrendingUp, Users, Send } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useCommunityPosts } from "@/hooks/useCommunityPosts";
+import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Comment {
@@ -83,6 +86,8 @@ const badges = {
 };
 
 export const CommunityWall = ({ t }: CommunityWallProps) => {
+  const { posts: communityPosts, loading: postsLoading } = useCommunityPosts();
+  const { analytics, loading: analyticsLoading } = useRealtimeAnalytics();
   const [messages, setMessages] = useLocalStorage<Message[]>('communityMessages', []);
   const [users, setUsers] = useLocalStorage<User[]>('communityUsers', [
     { id: '1', name: 'Ramesh Kumar', points: 450, treesPlanted: 23, badge: 'hero', location: 'Village A' },
@@ -110,12 +115,13 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate global impact
-  const safeUsersForImpact = Array.isArray(users) ? users : [];
+  // Calculate global impact from realtime analytics
   const globalImpact = {
-    totalTrees: safeUsersForImpact.reduce((sum, user) => sum + user.treesPlanted, 0),
-    co2Saved: safeUsersForImpact.reduce((sum, user) => sum + user.treesPlanted * 25, 0),
-    usersInvolved: safeUsersForImpact.length
+    totalTrees: analytics?.total_trees || 0,
+    co2Saved: Math.round(analytics?.total_co2_kg || 0),
+    o2Generated: Math.round(analytics?.total_o2_lpd || 0),
+    areaExpanded: Math.round(analytics?.total_area_m2 || 0),
+    usersInvolved: users.length
   };
 
   const getUserBadge = (treesPlanted: number) => {
@@ -126,51 +132,61 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     return badges.starter;
   };
 
-  const postMessage = () => {
+  const postMessage = async () => {
     if (!newMessage.trim()) return;
 
-    const message: Message = {
-      id: Date.now().toString(),
-      author: "You",
-      text: newMessage,
-      timestamp: new Date().toLocaleString(),
-      reactions: { like: 0, love: 0, plant: 0, support: 0 },
-      comments: [],
-      tags: tags,
-      location: "My Village",
-      greenPoints: 10,
-      userBadge: badges.guardian.icon
-    };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please log in to post");
+        return;
+      }
 
-    setMessages([message, ...messages]);
-    setNewMessage("");
-    setTags([]);
-    setTagInput("");
-    
-    // AI Auto-Comment
-    setTimeout(() => {
-      const aiComments = [
-        "Amazing effort! You just helped the planet breathe better 🌍",
-        "Great work! Every tree makes a difference 🌱",
-        "Inspiring post! Keep spreading the green movement 💚",
-        "Wonderful initiative! Together we grow stronger 🌳"
-      ];
-      const randomComment = aiComments[Math.floor(Math.random() * aiComments.length)];
-      
-      const updatedMessage = {
-        ...message,
-        comments: [{
-          id: Date.now().toString(),
-          author: "EcoBot 🤖",
-          text: randomComment,
-          timestamp: new Date().toLocaleString()
-        }]
+      // Get user profile for display name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+
+      const authorName = profile?.display_name || user.email?.split('@')[0] || 'Anonymous';
+
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('community_posts')
+        .insert({
+          user_id: user.id,
+          content: newMessage,
+          author_name: authorName,
+          likes: 0
+        });
+
+      if (error) throw error;
+
+      // Also save locally for backward compatibility
+      const message: Message = {
+        id: Date.now().toString(),
+        author: authorName,
+        text: newMessage,
+        timestamp: new Date().toLocaleString(),
+        reactions: { like: 0, love: 0, plant: 0, support: 0 },
+        comments: [],
+        tags: tags,
+        location: "My Village",
+        greenPoints: 10,
+        userBadge: badges.guardian.icon
       };
+
+      setMessages([message, ...messages]);
+      setNewMessage("");
+      setTags([]);
+      setTagInput("");
       
-      setMessages(prev => [updatedMessage, ...prev.slice(1)]);
-    }, 2000);
-    
-    toast.success("Post shared! +10 Green Points 🌱");
+      toast.success("Post shared! +10 Green Points 🌱");
+    } catch (error) {
+      console.error('Error posting message:', error);
+      toast.error("Failed to post message");
+    }
   };
 
   const addReaction = (messageId: string, reactionType: keyof Message['reactions']) => {
@@ -226,13 +242,34 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     setTags(tags.filter(t => t !== tag));
   };
 
+  // Combine local messages with database posts
   const safeMessages = Array.isArray(messages) ? messages : [];
   const safeChallenges = Array.isArray(challenges) ? challenges : [];
   const safeUsers = Array.isArray(users) ? users : [];
   
+  // Convert database posts to Message format
+  const dbMessages: Message[] = communityPosts.map(post => ({
+    id: post.id,
+    author: post.author_name,
+    text: post.content,
+    timestamp: new Date(post.created_at).toLocaleString(),
+    reactions: { like: post.likes || 0, love: 0, plant: 0, support: 0 },
+    comments: [],
+    tags: [],
+    location: "Community",
+    greenPoints: 10,
+    userBadge: badges.starter.icon,
+    imageUrl: post.image_url || undefined
+  }));
+
+  // Merge and sort by timestamp
+  const allMessages = [...dbMessages, ...safeMessages].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+  
   const filteredMessages = selectedLocation === "all" 
-    ? safeMessages 
-    : safeMessages.filter(msg => msg.location === selectedLocation);
+    ? allMessages 
+    : allMessages.filter(msg => msg.location === selectedLocation);
 
   const topContributors = [...safeUsers].sort((a, b) => b.points - a.points).slice(0, 5);
 
@@ -247,13 +284,13 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
         </div>
       </Card>
 
-      {/* Global Impact Counter */}
+      {/* Global Impact Counter - Real-time */}
       <Card className="p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-foreground">
-          <Globe className="h-6 w-6 text-primary" />
-          Global Community Impact
+          <Globe className="h-6 w-6 text-primary animate-pulse" />
+          Global Community Impact (Live)
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-primary">{globalImpact.totalTrees}</div>
             <div className="text-sm text-muted-foreground">Trees Planted</div>
@@ -263,8 +300,12 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
             <div className="text-sm text-muted-foreground">CO₂ Saved</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-primary">{globalImpact.usersInvolved}</div>
-            <div className="text-sm text-muted-foreground">Users Involved</div>
+            <div className="text-3xl font-bold text-primary">{globalImpact.o2Generated}L</div>
+            <div className="text-sm text-muted-foreground">O₂/Day</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-primary">{globalImpact.areaExpanded}m²</div>
+            <div className="text-sm text-muted-foreground">Green Area</div>
           </div>
         </div>
       </Card>
@@ -390,6 +431,20 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
 
                     {/* Message Content */}
                     <p className="text-foreground mb-3 leading-relaxed">{message.text}</p>
+
+                    {/* Image if exists */}
+                    {message.imageUrl && (
+                      <div className="mb-3 rounded-lg overflow-hidden">
+                        <img 
+                          src={message.imageUrl.startsWith('http') 
+                            ? message.imageUrl 
+                            : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/plant-images/${message.imageUrl}`
+                          }
+                          alt="Post"
+                          className="w-full max-h-96 object-cover"
+                        />
+                      </div>
+                    )}
 
                     {/* Tags */}
                     {message.tags && Array.isArray(message.tags) && message.tags.length > 0 && (
