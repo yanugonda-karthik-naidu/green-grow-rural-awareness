@@ -111,7 +111,11 @@ export const translations = {
     aiSuggestion2: "Monsoon Alert — this week's weather is ideal for planting mango saplings.",
     aiSuggestion3: "Water your planted trees every 2 days during this dry season.",
     plantNowAction: "Plant Now",
-    setReminderAction: "Set Reminder"
+    setReminderAction: "Set Reminder",
+    uploadImage: "Upload Image",
+    selectSpecies: "Select Species",
+    shareOnCommunity: "Share on Community Wall",
+    loadDraft: "Load Saved Draft"
   },
   te: {
     welcome: "గ్రీన్‌గ్రో కు స్వాగతం",
@@ -225,7 +229,11 @@ export const translations = {
     aiSuggestion2: "వర్షాకాల హెచ్చరిక — ఈ వారం వాతావరణం మామిడి మొక్కలు నాటడానికి అనుకూలంగా ఉంది.",
     aiSuggestion3: "ఈ పొడి కాలంలో మీ నాటిన చెట్లకు ప్రతి 2 రోజులకు నీరు పోయండి.",
     plantNowAction: "ఇప్పుడు నాటండి",
-    setReminderAction: "రిమైండర్ సెట్ చేయండి"
+    setReminderAction: "రిమైండర్ సెట్ చేయండి",
+    uploadImage: "చిత్రాన్ని అప్‌లోడ్ చేయండి",
+    selectSpecies: "జాతిని ఎంచుకోండి",
+    shareOnCommunity: "కమ్యూనిటీ వాల్ లో షేర్ చేయండి",
+    loadDraft: "సేవ్ చేసిన డ్రాఫ్ట్ లోడ్ చేయండి"
   },
   hi: {
     welcome: "ग्रीनग्रो में आपका स्वागत है",
@@ -339,9 +347,15 @@ export const translations = {
     aiSuggestion2: "मानसून अलर्ट — इस सप्ताह का मौसम आम के पौधे लगाने के लिए आदर्श है।",
     aiSuggestion3: "इस शुष्क मौसम में अपने लगाए गए पेड़ों को हर 2 दिन में पानी दें।",
     plantNowAction: "अभी लगाएं",
-    setReminderAction: "रिमाइंडर सेट करें"
+    setReminderAction: "रिमाइंडर सेट करें",
+    uploadImage: "छवि अपलोड करें",
+    selectSpecies: "प्रजाति चुनें",
+    shareOnCommunity: "सामुदायिक दीवार पर साझा करें",
+    loadDraft: "सहेजा गया ड्राफ्ट लोड करें"
   }
 };
+
+export type Language = keyof typeof translations;
 
 export type Language = keyof typeof translations;
 export type TranslationKey = keyof typeof translations.en;

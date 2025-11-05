@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Sprout } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Sprout, Upload, Image as ImageIcon, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { useOfflineDraft } from "@/hooks/useOfflineDraft";
 
 interface PlantTreeProps {
   language: string;
@@ -15,6 +23,28 @@ interface PlantTreeProps {
 export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantTreeProps) => {
   const [treeStage, setTreeStage] = useState(0);
   const [isGrowing, setIsGrowing] = useState(false);
+  
+  // Form state
+  const [plantName, setPlantName] = useState("");
+  const [species, setSpecies] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadImage, uploading, progress: uploadProgress } = useImageUpload();
+  const { saveDraft, clearDraft, loadDraft, hasDraft } = useOfflineDraft();
+  
+  const [user, setUser] = useState<any>(null);
+
+  // Get current user
+  useState(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  });
 
   const stages = [
     { label: t.stageSeed, desc: t.stageSeedDesc, progress: 0 },
@@ -25,39 +55,282 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
     { label: t.stageMatureTree, desc: t.stageMatureTreeDesc, progress: 100 }
   ];
 
-  const plantTree = () => {
-    if (isGrowing) return;
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("Image size should be less than 10MB");
+        return;
+      }
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLoadDraft = () => {
+    const draft = loadDraft();
+    if (draft) {
+      setPlantName(draft.name);
+      setSpecies(draft.species || "");
+      setDescription(draft.description || "");
+      setLocation(draft.location || "");
+      setIsPublic(draft.isPublic);
+      if (draft.imageData) {
+        setImagePreview(draft.imageData);
+      }
+      toast.success("Draft loaded!");
+    }
+  };
+
+  const plantTree = async () => {
+    if (isGrowing || !user) return;
+    
+    if (!plantName || !selectedImage) {
+      toast.error("Please provide a plant name and image!");
+      return;
+    }
     
     setIsGrowing(true);
     setTreeStage(0);
     
-    const growthInterval = setInterval(() => {
-      setTreeStage(prev => {
-        if (prev >= 5) {
-          clearInterval(growthInterval);
-          setIsGrowing(false);
-          
-          const impact = {
-            treesPlanted: 1,
-            co2Reduced: 25,
-            oxygenGenerated: 260,
-            wildlifeSheltered: 5
-          };
-          
-          onTreePlanted(impact);
-          addPlantedTree("Tree");
-          toast.success(t.plantTree + " 🌳 " + t.successfullyGrown);
-          
-          return prev;
-        }
-        return prev + 1;
+    let growthInterval: NodeJS.Timeout | null = null;
+    
+    try {
+      // Save draft for offline support
+      saveDraft({
+        name: plantName,
+        species,
+        description,
+        location,
+        isPublic,
+        imageData: imagePreview || undefined,
+        timestamp: Date.now(),
       });
-    }, 2000);
+      
+      // Start germination animation
+      growthInterval = setInterval(() => {
+        setTreeStage(prev => {
+          if (prev >= 5) {
+            clearInterval(growthInterval);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 2000);
+      
+      // Upload image
+      const imagePath = await uploadImage(selectedImage, user.id);
+      
+      if (!imagePath) {
+        throw new Error("Failed to upload image");
+      }
+      
+      // Insert plant record
+      const { data: plantData, error: plantError } = await supabase
+        .from('planted_trees')
+        .insert({
+          user_id: user.id,
+          tree_name: plantName,
+          species: species || plantName,
+          description,
+          location,
+          image_path: imagePath,
+          is_public: isPublic,
+          growth_stage: 0,
+          impact_co2_kg: 25,
+          impact_o2_l_per_day: 260,
+          area_m2: 2,
+          planted_date: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      if (plantError || !plantData) {
+        throw new Error(plantError?.message || "Failed to save plant");
+      }
+      
+      // Call automation edge function
+      const { data: automationData, error: automationError } = await supabase.functions.invoke(
+        'plant-automation',
+        {
+          body: { plantId: plantData.id, userId: user.id },
+        }
+      );
+      
+      if (automationError) {
+        console.error('Automation error:', automationError);
+      } else {
+        console.log('Automation response:', automationData);
+        
+        // Show achievement notifications
+        if (automationData?.achievements && automationData.achievements.length > 0) {
+          automationData.achievements.forEach((achievement: string) => {
+            toast.success(achievement, { duration: 5000 });
+          });
+        }
+        
+        toast.success(`🌳 ${t.plantTree} successful! +${automationData?.seedsAwarded || 5} ${t.seeds}`, {
+          duration: 5000,
+        });
+      }
+      
+      // Update parent component
+      const impact = {
+        treesPlanted: 1,
+        co2Reduced: 25,
+        oxygenGenerated: 260,
+        wildlifeSheltered: 5
+      };
+      
+      onTreePlanted(impact);
+      await addPlantedTree(plantName);
+      
+      // Clear draft and form
+      clearDraft();
+      setPlantName("");
+      setSpecies("");
+      setDescription("");
+      setLocation("");
+      setSelectedImage(null);
+      setImagePreview(null);
+      
+      // Stop animation after completion
+      setTimeout(() => {
+        setIsGrowing(false);
+      }, 12000); // 6 stages * 2 seconds
+      
+    } catch (error: any) {
+      console.error('Error planting tree:', error);
+      toast.error(error.message || "Failed to plant tree. Please try again.");
+      setIsGrowing(false);
+      if (growthInterval) clearInterval(growthInterval);
+    }
   };
 
   return (
     <Card className="p-8">
       <h2 className="text-3xl font-bold mb-6 text-primary text-center">{t.plantTree}</h2>
+      
+      {/* Upload Form */}
+      <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="plantName">{t.plantTree} Name *</Label>
+            <Input
+              id="plantName"
+              value={plantName}
+              onChange={(e) => setPlantName(e.target.value)}
+              placeholder="e.g., Neem Tree"
+              disabled={isGrowing}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="species">Species</Label>
+            <Select value={species} onValueChange={setSpecies} disabled={isGrowing}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select species" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="neem">Neem</SelectItem>
+                <SelectItem value="peepal">Peepal</SelectItem>
+                <SelectItem value="banyan">Banyan</SelectItem>
+                <SelectItem value="mango">Mango</SelectItem>
+                <SelectItem value="coconut">Coconut</SelectItem>
+                <SelectItem value="tulsi">Tulsi</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Share your story about this tree..."
+              rows={3}
+              disabled={isGrowing}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="location">
+              <MapPin className="inline h-4 w-4 mr-1" />
+              Location (optional)
+            </Label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g., Community Park, City"
+              disabled={isGrowing}
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="public"
+              checked={isPublic}
+              onCheckedChange={setIsPublic}
+              disabled={isGrowing}
+            />
+            <Label htmlFor="public">Share on Community Wall</Label>
+          </div>
+          
+          {hasDraft && !isGrowing && (
+            <Button onClick={handleLoadDraft} variant="outline" className="w-full">
+              Load Saved Draft
+            </Button>
+          )}
+        </div>
+        
+        {/* Image Upload */}
+        <div className="space-y-4">
+          <Label>Plant Image *</Label>
+          <div 
+            className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+            onClick={() => !isGrowing && fileInputRef.current?.click()}
+          >
+            {imagePreview ? (
+              <div className="space-y-2">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <p className="text-sm text-muted-foreground">Click to change image</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <ImageIcon className="h-16 w-16 mx-auto text-muted-foreground" />
+                <p className="text-muted-foreground">Click to upload plant image</p>
+                <p className="text-xs text-muted-foreground">Max size: 10MB</p>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          
+          {uploading && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Uploading... {uploadProgress}%</p>
+              <Progress value={uploadProgress} />
+            </div>
+          )}
+        </div>
+      </div>
       
       <div className="min-h-[400px] flex flex-col items-center justify-center mb-8 relative bg-gradient-to-b from-sky-100 to-green-50 dark:from-sky-950/30 dark:to-green-950/30 rounded-xl p-8">
         {/* Realistic tree growth visualization */}
@@ -162,12 +435,12 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
       <div className="text-center">
         <Button 
           onClick={plantTree} 
-          disabled={isGrowing}
+          disabled={isGrowing || !plantName || !selectedImage || uploading}
           size="lg"
           className="text-lg px-12 py-6 shadow-lg hover:shadow-xl transition-all"
         >
           <Sprout className="mr-2 h-6 w-6" />
-          {isGrowing ? t.growing : t.plantNow}
+          {isGrowing ? t.growing : uploading ? `Uploading... ${uploadProgress}%` : t.plantNow}
         </Button>
         
         {treeStage === 5 && (

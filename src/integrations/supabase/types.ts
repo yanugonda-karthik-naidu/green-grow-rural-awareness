@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_counters: {
+        Row: {
+          id: string
+          last_updated: string | null
+          total_area_m2: number | null
+          total_co2_kg: number | null
+          total_o2_lpd: number | null
+          total_seeds_issued: number | null
+          total_trees: number | null
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          total_area_m2?: number | null
+          total_co2_kg?: number | null
+          total_o2_lpd?: number | null
+          total_seeds_issued?: number | null
+          total_trees?: number | null
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          total_area_m2?: number | null
+          total_co2_kg?: number | null
+          total_o2_lpd?: number | null
+          total_seeds_issued?: number | null
+          total_trees?: number | null
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           author_name: string
@@ -70,25 +100,55 @@ export type Database = {
       }
       planted_trees: {
         Row: {
+          area_m2: number | null
           created_at: string | null
+          description: string | null
+          growth_stage: number | null
           id: string
+          image_path: string | null
+          impact_co2_kg: number | null
+          impact_o2_l_per_day: number | null
+          is_public: boolean | null
+          location: string | null
+          metadata: Json | null
           planted_date: string | null
+          species: string | null
           stage: number | null
           tree_name: string
           user_id: string
         }
         Insert: {
+          area_m2?: number | null
           created_at?: string | null
+          description?: string | null
+          growth_stage?: number | null
           id?: string
+          image_path?: string | null
+          impact_co2_kg?: number | null
+          impact_o2_l_per_day?: number | null
+          is_public?: boolean | null
+          location?: string | null
+          metadata?: Json | null
           planted_date?: string | null
+          species?: string | null
           stage?: number | null
           tree_name: string
           user_id: string
         }
         Update: {
+          area_m2?: number | null
           created_at?: string | null
+          description?: string | null
+          growth_stage?: number | null
           id?: string
+          image_path?: string | null
+          impact_co2_kg?: number | null
+          impact_o2_l_per_day?: number | null
+          is_public?: boolean | null
+          location?: string | null
+          metadata?: Json | null
           planted_date?: string | null
+          species?: string | null
           stage?: number | null
           tree_name?: string
           user_id?: string
@@ -122,6 +182,39 @@ export type Database = {
         }
         Relationships: []
       }
+      translations: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          en: string
+          hi: string
+          id: string
+          key: string
+          te: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          en: string
+          hi: string
+          id?: string
+          key: string
+          te: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          en?: string
+          hi?: string
+          id?: string
+          key?: string
+          te?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_name: string
@@ -150,7 +243,9 @@ export type Database = {
           energy_saved: number | null
           green_area_expanded: number | null
           id: string
+          language: string | null
           oxygen_generated: number | null
+          points: number | null
           seed_points: number | null
           trees_planted: number | null
           updated_at: string | null
@@ -164,7 +259,9 @@ export type Database = {
           energy_saved?: number | null
           green_area_expanded?: number | null
           id?: string
+          language?: string | null
           oxygen_generated?: number | null
+          points?: number | null
           seed_points?: number | null
           trees_planted?: number | null
           updated_at?: string | null
@@ -178,7 +275,9 @@ export type Database = {
           energy_saved?: number | null
           green_area_expanded?: number | null
           id?: string
+          language?: string | null
           oxygen_generated?: number | null
+          points?: number | null
           seed_points?: number | null
           trees_planted?: number | null
           updated_at?: string | null
