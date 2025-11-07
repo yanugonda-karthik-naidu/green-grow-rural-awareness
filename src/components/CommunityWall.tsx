@@ -122,55 +122,45 @@ export const CommunityWall = ({
   useEffect(() => {
     const fetchTopContributors = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_progress')
-          .select('user_id, trees_planted, seed_points')
-          .order('trees_planted', { ascending: false })
-          .limit(5);
-
+        const {
+          data,
+          error
+        } = await supabase.from('user_progress').select('user_id, trees_planted, seed_points').order('trees_planted', {
+          ascending: false
+        }).limit(5);
         if (error || !data) return;
-
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        
-        const contributors: User[] = data
-          .filter(contrib => contrib.trees_planted > 0)
-          .map(contrib => {
-            const badgeInfo = getUserBadge(contrib.trees_planted);
-            return {
-              id: contrib.user_id,
-              name: 'Community Member',
-              points: contrib.seed_points,
-              treesPlanted: contrib.trees_planted,
-              badge: badgeInfo.name,
-              location: 'Community',
-              isCurrentUser: contrib.user_id === currentUser?.id
-            };
-          });
-        
+        const {
+          data: {
+            user: currentUser
+          }
+        } = await supabase.auth.getUser();
+        const contributors: User[] = data.filter(contrib => contrib.trees_planted > 0).map(contrib => {
+          const badgeInfo = getUserBadge(contrib.trees_planted);
+          return {
+            id: contrib.user_id,
+            name: 'Community Member',
+            points: contrib.seed_points,
+            treesPlanted: contrib.trees_planted,
+            badge: badgeInfo.name,
+            location: 'Community',
+            isCurrentUser: contrib.user_id === currentUser?.id
+          };
+        });
         setTopContributors(contributors);
       } catch (err) {
         console.error('Error fetching contributors:', err);
       }
     };
-
     fetchTopContributors();
-    
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('progress-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_progress',
-        },
-        () => {
-          fetchTopContributors();
-        }
-      )
-      .subscribe();
 
+    // Subscribe to real-time updates
+    const channel = supabase.channel('progress-changes').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'user_progress'
+    }, () => {
+      fetchTopContributors();
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
