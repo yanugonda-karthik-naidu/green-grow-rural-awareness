@@ -30,12 +30,6 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
     seedPoints: progress.seed_points || 0,
     plantedTrees: plantedTrees,
     badges: [],
-    weeklyProgress: [
-      { week: 'Week 1', trees: 2, co2: 50 },
-      { week: 'Week 2', trees: 5, co2: 125 },
-      { week: 'Week 3', trees: 3, co2: 75 },
-      { week: 'Week 4', trees: Math.max(1, progress.trees_planted || 0), co2: progress.co2_reduced || 0 },
-    ],
   };
 
   const stats = [
@@ -122,15 +116,29 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
     { name: t.waterSaved, value: safeProgress.waterSaved / 10, color: '#3b82f6' },
   ];
 
-  // Weekly progress data
-  const weeklyData = safeProgress.weeklyProgress.length > 0 
-    ? safeProgress.weeklyProgress 
-    : [
-        { week: `${t.week} 1`, trees: 2, co2: 50 },
-        { week: `${t.week} 2`, trees: 5, co2: 125 },
-        { week: `${t.week} 3`, trees: 3, co2: 75 },
-        { week: `${t.week} 4`, trees: Math.max(1, safeProgress.treesPlanted), co2: safeProgress.co2Reduced },
-      ];
+  // Weekly progress data - calculate from actual planted trees grouped by week
+  const weeklyData = React.useMemo(() => {
+    if (plantedTrees.length === 0) return [];
+    
+    const weeklyMap: Record<string, { trees: number; co2: number }> = {};
+    const now = Date.now();
+    
+    plantedTrees.forEach((tree) => {
+      const plantedTime = new Date(tree.planted_date).getTime();
+      const weeksPassed = Math.ceil((now - plantedTime) / (7 * 24 * 60 * 60 * 1000));
+      const weekKey = `${t.week || 'Week'} ${weeksPassed}`;
+      
+      if (!weeklyMap[weekKey]) {
+        weeklyMap[weekKey] = { trees: 0, co2: 0 };
+      }
+      weeklyMap[weekKey].trees += 1;
+      weeklyMap[weekKey].co2 += tree.impact_co2_kg || 25;
+    });
+    
+    return Object.entries(weeklyMap)
+      .map(([week, data]) => ({ week, ...data }))
+      .slice(-4);
+  }, [plantedTrees, t.week]);
 
   // AI Suggestions
   const aiSuggestions = [
@@ -355,7 +363,7 @@ export const ImpactCounter = ({ progress, plantedTrees, t }: ImpactCounterProps)
                   
                   // Get the uploaded image from Supabase storage or fallback to tree data
                   const displayImage = tree.image_path 
-                    ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/plant-images/${tree.image_path}`
+                    ? `https://zxbnkivvrrfpzwfcfidk.supabase.co/storage/v1/object/public/plant-images/${tree.image_path}`
                     : treeInfo?.image;
                   
                   return (

@@ -160,14 +160,10 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const seedProgress = (safeProgress.seedPoints % seedsToNextReward) / seedsToNextReward * 100;
   const rewardsUnlocked = Math.floor(safeProgress.seedPoints / seedsToNextReward);
 
-  // Top contributors (mock data + user)
-  const topContributors = [
-    { rank: 1, name: "Ravi Kumar", trees: 127, seeds: 635, avatar: "🌟" },
-    { rank: 2, name: "Priya Sharma", trees: 98, seeds: 490, avatar: "🌿" },
-    { rank: 3, name: "You", trees: safeProgress.treesPlanted, seeds: safeProgress.seedPoints, avatar: "🌱", isUser: true },
-    { rank: 4, name: "Amit Patel", trees: 76, seeds: 380, avatar: "🌲" },
-    { rank: 5, name: "Sneha Reddy", trees: 64, seeds: 320, avatar: "🍃" },
-  ].sort((a, b) => b.trees - a.trees).map((item, idx) => ({ ...item, rank: idx + 1 }));
+  // Top contributors - only show if user has planted trees
+  const topContributors = safeProgress.treesPlanted > 0 ? [
+    { rank: 1, name: "You", trees: safeProgress.treesPlanted, seeds: safeProgress.seedPoints, avatar: "🌱", isUser: true }
+  ] : [];
 
   const fireConfetti = () => {
     confetti({
