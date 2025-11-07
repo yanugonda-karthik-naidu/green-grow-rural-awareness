@@ -13,20 +13,18 @@ import { useCommunityPosts } from "@/hooks/useCommunityPosts";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
 interface Comment {
   id: string;
   author: string;
   text: string;
   timestamp: string;
 }
-
 interface Message {
   id: string;
   author: string;
   text: string;
   timestamp: string;
-  reactions: { 
+  reactions: {
     like: number;
     love: number;
     plant: number;
@@ -39,7 +37,6 @@ interface Message {
   greenPoints: number;
   userBadge?: string;
 }
-
 interface User {
   id: string;
   name: string;
@@ -48,7 +45,6 @@ interface User {
   badge: string;
   location: string;
 }
-
 interface CommunityChallenge {
   id: string;
   title: string;
@@ -56,52 +52,87 @@ interface CommunityChallenge {
   current: number;
   endDate: string;
 }
-
 interface CommunityWallProps {
   t: any;
 }
-
-const ecoFacts = [
-  "🌳 1 mature tree provides oxygen for 2 humans daily",
-  "🌍 Trees can reduce air temperature by up to 10°C",
-  "💧 A single tree can absorb 22 kg of CO₂ per year",
-  "🐦 Trees provide shelter for over 80% of terrestrial biodiversity",
-  "🌱 Planting trees improves soil quality and prevents erosion"
-];
-
-const motivationalQuotes = [
-  "Let's grow together 🌱",
-  "Every tree makes a difference 🌳",
-  "Be the change you wish to see 🌍",
-  "Plant today, breathe tomorrow 💚",
-  "Together we can heal the Earth 🌿"
-];
-
+const ecoFacts = ["🌳 1 mature tree provides oxygen for 2 humans daily", "🌍 Trees can reduce air temperature by up to 10°C", "💧 A single tree can absorb 22 kg of CO₂ per year", "🐦 Trees provide shelter for over 80% of terrestrial biodiversity", "🌱 Planting trees improves soil quality and prevents erosion"];
+const motivationalQuotes = ["Let's grow together 🌱", "Every tree makes a difference 🌳", "Be the change you wish to see 🌍", "Plant today, breathe tomorrow 💚", "Together we can heal the Earth 🌿"];
 const badges = {
-  starter: { icon: "🌱", name: "Green Starter", minTrees: 0 },
-  explorer: { icon: "🌿", name: "Eco Explorer", minTrees: 5 },
-  guardian: { icon: "🌳", name: "Eco Guardian", minTrees: 15 },
-  hero: { icon: "🌾", name: "Village Hero", minTrees: 30 },
-  saver: { icon: "🌍", name: "Earth Saver", minTrees: 50 }
+  starter: {
+    icon: "🌱",
+    name: "Green Starter",
+    minTrees: 0
+  },
+  explorer: {
+    icon: "🌿",
+    name: "Eco Explorer",
+    minTrees: 5
+  },
+  guardian: {
+    icon: "🌳",
+    name: "Eco Guardian",
+    minTrees: 15
+  },
+  hero: {
+    icon: "🌾",
+    name: "Village Hero",
+    minTrees: 30
+  },
+  saver: {
+    icon: "🌍",
+    name: "Earth Saver",
+    minTrees: 50
+  }
 };
-
-export const CommunityWall = ({ t }: CommunityWallProps) => {
-  const { posts: communityPosts, loading: postsLoading } = useCommunityPosts();
-  const { analytics, loading: analyticsLoading } = useRealtimeAnalytics();
+export const CommunityWall = ({
+  t
+}: CommunityWallProps) => {
+  const {
+    posts: communityPosts,
+    loading: postsLoading
+  } = useCommunityPosts();
+  const {
+    analytics,
+    loading: analyticsLoading
+  } = useRealtimeAnalytics();
   const [messages, setMessages] = useLocalStorage<Message[]>('communityMessages', []);
-  const [users, setUsers] = useLocalStorage<User[]>('communityUsers', [
-    { id: '1', name: 'Ramesh Kumar', points: 450, treesPlanted: 23, badge: 'hero', location: 'Village A' },
-    { id: '2', name: 'Priya Sharma', points: 380, treesPlanted: 19, badge: 'guardian', location: 'Village B' },
-    { id: '3', name: 'Amit Patel', points: 320, treesPlanted: 16, badge: 'guardian', location: 'Village A' }
-  ]);
-  const [challenges, setLocalChallenges] = useLocalStorage<CommunityChallenge[]>('communityChallenges', [
-    { id: '1', title: 'Plant 100 trees in our village this week!', target: 100, current: 67, endDate: '2025-11-01' }
-  ]);
-  
+  const [users, setUsers] = useLocalStorage<User[]>('communityUsers', [{
+    id: '1',
+    name: 'Ramesh Kumar',
+    points: 450,
+    treesPlanted: 23,
+    badge: 'hero',
+    location: 'Village A'
+  }, {
+    id: '2',
+    name: 'Priya Sharma',
+    points: 380,
+    treesPlanted: 19,
+    badge: 'guardian',
+    location: 'Village B'
+  }, {
+    id: '3',
+    name: 'Amit Patel',
+    points: 320,
+    treesPlanted: 16,
+    badge: 'guardian',
+    location: 'Village A'
+  }]);
+  const [challenges, setLocalChallenges] = useLocalStorage<CommunityChallenge[]>('communityChallenges', [{
+    id: '1',
+    title: 'Plant 100 trees in our village this week!',
+    target: 100,
+    current: 67,
+    endDate: '2025-11-01'
+  }]);
   const [newMessage, setNewMessage] = useState("");
-  const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
+  const [newComment, setNewComment] = useState<{
+    [key: string]: string;
+  }>({});
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [showComments, setShowComments] = useState<{ [key: string]: boolean }>({});
+  const [showComments, setShowComments] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
   const [currentFact, setCurrentFact] = useState(ecoFacts[0]);
   const [tagInput, setTagInput] = useState("");
@@ -123,7 +154,6 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     areaExpanded: Math.round(analytics?.total_area_m2 || 0),
     usersInvolved: users.length
   };
-
   const getUserBadge = (treesPlanted: number) => {
     if (treesPlanted >= 50) return badges.saver;
     if (treesPlanted >= 30) return badges.hero;
@@ -131,36 +161,34 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     if (treesPlanted >= 5) return badges.explorer;
     return badges.starter;
   };
-
   const postMessage = async () => {
     if (!newMessage.trim()) return;
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) {
         toast.error("Please log in to post");
         return;
       }
 
       // Get user profile for display name
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
       const authorName = profile?.display_name || user.email?.split('@')[0] || 'Anonymous';
 
       // Insert into Supabase
-      const { error } = await supabase
-        .from('community_posts')
-        .insert({
-          user_id: user.id,
-          content: newMessage,
-          author_name: authorName,
-          likes: 0
-        });
-
+      const {
+        error
+      } = await supabase.from('community_posts').insert({
+        user_id: user.id,
+        content: newMessage,
+        author_name: authorName,
+        likes: 0
+      });
       if (error) throw error;
 
       // Also save locally for backward compatibility
@@ -169,26 +197,28 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
         author: authorName,
         text: newMessage,
         timestamp: new Date().toLocaleString(),
-        reactions: { like: 0, love: 0, plant: 0, support: 0 },
+        reactions: {
+          like: 0,
+          love: 0,
+          plant: 0,
+          support: 0
+        },
         comments: [],
         tags: tags,
         location: "My Village",
         greenPoints: 10,
         userBadge: badges.guardian.icon
       };
-
       setMessages([message, ...messages]);
       setNewMessage("");
       setTags([]);
       setTagInput("");
-      
       toast.success("Post shared! +10 Green Points 🌱");
     } catch (error) {
       console.error('Error posting message:', error);
       toast.error("Failed to post message");
     }
   };
-
   const addReaction = (messageId: string, reactionType: keyof Message['reactions']) => {
     setMessages(messages.map(msg => {
       if (msg.id === messageId) {
@@ -204,40 +234,35 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     }));
     toast.success("Reaction added! +2 Green Points 🌿");
   };
-
   const addComment = (messageId: string) => {
     const commentText = newComment[messageId];
     if (!commentText?.trim()) return;
-
     setMessages(messages.map(msg => {
       if (msg.id === messageId) {
         return {
           ...msg,
-          comments: [
-            ...msg.comments,
-            {
-              id: Date.now().toString(),
-              author: "You",
-              text: commentText,
-              timestamp: new Date().toLocaleString()
-            }
-          ]
+          comments: [...msg.comments, {
+            id: Date.now().toString(),
+            author: "You",
+            text: commentText,
+            timestamp: new Date().toLocaleString()
+          }]
         };
       }
       return msg;
     }));
-
-    setNewComment({ ...newComment, [messageId]: "" });
+    setNewComment({
+      ...newComment,
+      [messageId]: ""
+    });
     toast.success("Comment added! +5 Green Points 💬");
   };
-
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
       setTagInput("");
     }
   };
-
   const removeTag = (tag: string) => {
     setTags(tags.filter(t => t !== tag));
   };
@@ -246,14 +271,19 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   const safeMessages = Array.isArray(messages) ? messages : [];
   const safeChallenges = Array.isArray(challenges) ? challenges : [];
   const safeUsers = Array.isArray(users) ? users : [];
-  
+
   // Convert database posts to Message format
   const dbMessages: Message[] = communityPosts.map(post => ({
     id: post.id,
     author: post.author_name,
     text: post.content,
     timestamp: new Date(post.created_at).toLocaleString(),
-    reactions: { like: post.likes || 0, love: 0, plant: 0, support: 0 },
+    reactions: {
+      like: post.likes || 0,
+      love: 0,
+      plant: 0,
+      support: 0
+    },
     comments: [],
     tags: [],
     location: "Community",
@@ -263,18 +293,10 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   }));
 
   // Merge and sort by timestamp
-  const allMessages = [...dbMessages, ...safeMessages].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
-  
-  const filteredMessages = selectedLocation === "all" 
-    ? allMessages 
-    : allMessages.filter(msg => msg.location === selectedLocation);
-
+  const allMessages = [...dbMessages, ...safeMessages].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const filteredMessages = selectedLocation === "all" ? allMessages : allMessages.filter(msg => msg.location === selectedLocation);
   const topContributors = [...safeUsers].sort((a, b) => b.points - a.points).slice(0, 5);
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Motivational Banner */}
       <Card className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
         <div className="flex items-center justify-center gap-2">
@@ -311,20 +333,18 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
       </Card>
 
       {/* Community Challenge */}
-      {safeChallenges.map(challenge => (
-        <Card key={challenge.id} className="p-6 border-2 border-primary/30">
+      {safeChallenges.map(challenge => <Card key={challenge.id} className="p-6 border-2 border-primary/30">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="h-6 w-6 text-primary" />
             <h3 className="text-lg font-bold text-foreground">Community Challenge</h3>
           </div>
           <p className="text-foreground mb-3">{challenge.title}</p>
-          <Progress value={(challenge.current / challenge.target) * 100} className="h-3 mb-2" />
+          <Progress value={challenge.current / challenge.target * 100} className="h-3 mb-2" />
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{challenge.current} / {challenge.target} trees</span>
+            <span>{challenge.current}0 / 100 trees{challenge.target} trees</span>
             <span>Ends: {challenge.endDate}</span>
           </div>
-        </Card>
-      ))}
+        </Card>)}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Feed */}
@@ -337,36 +357,21 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
             </h2>
             
             <div className="space-y-4">
-              <Textarea
-                placeholder="Share your plantation story, ideas, or progress... 🌱"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                className="min-h-[120px] resize-none"
-              />
+              <Textarea placeholder="Share your plantation story, ideas, or progress... 🌱" value={newMessage} onChange={e => setNewMessage(e.target.value)} className="min-h-[120px] resize-none" />
               
               {/* Tags Input */}
               <div className="space-y-2">
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Add tags (e.g., #MyTree, #GreenVillage)"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addTag()}
-                    className="flex-1"
-                  />
+                  <Input placeholder="Add tags (e.g., #MyTree, #GreenVillage)" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && addTag()} className="flex-1" />
                   <Button onClick={addTag} variant="outline" size="sm">
                     Add Tag
                   </Button>
                 </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                {tags.length > 0 && <div className="flex flex-wrap gap-2">
+                    {tags.map(tag => <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
                         {tag} ×
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                      </Badge>)}
+                  </div>}
               </div>
 
               <div className="flex gap-2">
@@ -382,11 +387,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           <Card className="p-4">
             <div className="flex items-center gap-4">
               <MapPin className="h-5 w-5 text-primary" />
-              <select 
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="flex-1 p-2 rounded-md border border-input bg-background"
-              >
+              <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="flex-1 p-2 rounded-md border border-input bg-background">
                 <option value="all">All Locations</option>
                 <option value="My Village">My Village</option>
                 <option value="Village A">Village A</option>
@@ -398,15 +399,12 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           {/* Posts Feed */}
           <ScrollArea className="h-[600px]">
             <div className="space-y-4 pr-4">
-              {filteredMessages.map((message, index) => (
-                <>
-                  {index > 0 && index % 3 === 0 && (
-                    <Card className="p-3 bg-primary/5 border-primary/20">
+              {filteredMessages.map((message, index) => <>
+                  {index > 0 && index % 3 === 0 && <Card className="p-3 bg-primary/5 border-primary/20">
                       <p className="text-sm text-center text-muted-foreground italic">
                         💡 {ecoFacts[Math.floor(Math.random() * ecoFacts.length)]}
                       </p>
-                    </Card>
-                  )}
+                    </Card>}
                   
                   <Card key={message.id} className="p-6 hover:shadow-lg transition-shadow animate-fade-in">
                     {/* Author Info */}
@@ -433,88 +431,51 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                     <p className="text-foreground mb-3 leading-relaxed">{message.text}</p>
 
                     {/* Image if exists */}
-                    {message.imageUrl && (
-                      <div className="mb-3 rounded-lg overflow-hidden">
-                        <img 
-                          src={message.imageUrl.startsWith('http') 
-                            ? message.imageUrl 
-                            : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/plant-images/${message.imageUrl}`
-                          }
-                          alt="Post"
-                          className="w-full max-h-96 object-cover"
-                        />
-                      </div>
-                    )}
+                    {message.imageUrl && <div className="mb-3 rounded-lg overflow-hidden">
+                        <img src={message.imageUrl.startsWith('http') ? message.imageUrl : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/plant-images/${message.imageUrl}`} alt="Post" className="w-full max-h-96 object-cover" />
+                      </div>}
 
                     {/* Tags */}
-                    {message.tags && Array.isArray(message.tags) && message.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {message.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
+                    {message.tags && Array.isArray(message.tags) && message.tags.length > 0 && <div className="flex flex-wrap gap-2 mb-3">
+                        {message.tags.map(tag => <Badge key={tag} variant="outline" className="text-xs">
                             {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                          </Badge>)}
+                      </div>}
 
                     <Separator className="my-3" />
 
                     {/* Reactions */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => addReaction(message.id, 'like')}
-                          className="gap-1 hover:bg-blue-100 dark:hover:bg-blue-900"
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => addReaction(message.id, 'like')} className="gap-1 hover:bg-blue-100 dark:hover:bg-blue-900">
                           <ThumbsUp className="h-4 w-4" />
                           <span className="text-xs">{message.reactions?.like || 0}</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => addReaction(message.id, 'love')}
-                          className="gap-1 hover:bg-red-100 dark:hover:bg-red-900"
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => addReaction(message.id, 'love')} className="gap-1 hover:bg-red-100 dark:hover:bg-red-900">
                           <Heart className="h-4 w-4" />
                           <span className="text-xs">{message.reactions?.love || 0}</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => addReaction(message.id, 'plant')}
-                          className="gap-1 hover:bg-green-100 dark:hover:bg-green-900"
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => addReaction(message.id, 'plant')} className="gap-1 hover:bg-green-100 dark:hover:bg-green-900">
                           <Sprout className="h-4 w-4" />
                           <span className="text-xs">{message.reactions?.plant || 0}</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => addReaction(message.id, 'support')}
-                          className="gap-1 hover:bg-purple-100 dark:hover:bg-purple-900"
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => addReaction(message.id, 'support')} className="gap-1 hover:bg-purple-100 dark:hover:bg-purple-900">
                           <Leaf className="h-4 w-4" />
                           <span className="text-xs">{message.reactions?.support || 0}</span>
                         </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowComments({ ...showComments, [message.id]: !showComments[message.id] })}
-                        className="gap-1"
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => setShowComments({
+                    ...showComments,
+                    [message.id]: !showComments[message.id]
+                  })} className="gap-1">
                         <MessageCircle className="h-4 w-4" />
                         <span className="text-xs">{message.comments?.length || 0}</span>
                       </Button>
                     </div>
 
                     {/* Comments Section */}
-                    {showComments[message.id] && (
-                      <div className="space-y-3 pt-3 border-t">
-                        {(message.comments || []).map(comment => (
-                          <div key={comment.id} className="flex gap-2 text-sm">
+                    {showComments[message.id] && <div className="space-y-3 pt-3 border-t">
+                        {(message.comments || []).map(comment => <div key={comment.id} className="flex gap-2 text-sm">
                             <div className="w-6 h-6 rounded-full bg-secondary/50 flex items-center justify-center text-xs flex-shrink-0">
                               {comment.author === "EcoBot 🤖" ? "🤖" : "👤"}
                             </div>
@@ -523,26 +484,20 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                               <p className="text-muted-foreground">{comment.text}</p>
                               <p className="text-xs text-muted-foreground mt-1">{comment.timestamp}</p>
                             </div>
-                          </div>
-                        ))}
+                          </div>)}
                         
                         <div className="flex gap-2 mt-3">
-                          <Input
-                            placeholder="Add a comment..."
-                            value={newComment[message.id] || ""}
-                            onChange={(e) => setNewComment({ ...newComment, [message.id]: e.target.value })}
-                            onKeyPress={(e) => e.key === 'Enter' && addComment(message.id)}
-                            className="flex-1"
-                          />
+                          <Input placeholder="Add a comment..." value={newComment[message.id] || ""} onChange={e => setNewComment({
+                      ...newComment,
+                      [message.id]: e.target.value
+                    })} onKeyPress={e => e.key === 'Enter' && addComment(message.id)} className="flex-1" />
                           <Button onClick={() => addComment(message.id)} size="sm">
                             <Send className="h-4 w-4" />
                           </Button>
                         </div>
-                      </div>
-                    )}
+                      </div>}
                   </Card>
-                </>
-              ))}
+                </>)}
             </div>
           </ScrollArea>
         </div>
@@ -556,8 +511,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
               Top Contributors
             </h3>
             <div className="space-y-3">
-              {topContributors.map((user, index) => (
-                <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+              {topContributors.map((user, index) => <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors">
                   <div className="text-2xl font-bold text-primary">#{index + 1}</div>
                   <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                     {getUserBadge(user.treesPlanted).icon}
@@ -570,8 +524,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                       <span>{user.treesPlanted} trees</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </Card>
 
@@ -582,15 +535,13 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
               Achievement Badges
             </h3>
             <div className="space-y-3">
-              {Object.entries(badges).map(([key, badge]) => (
-                <div key={key} className="flex items-center gap-3 p-2 rounded-lg bg-secondary/20">
+              {Object.entries(badges).map(([key, badge]) => <div key={key} className="flex items-center gap-3 p-2 rounded-lg bg-secondary/20">
                   <div className="text-2xl">{badge.icon}</div>
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-foreground">{badge.name}</p>
                     <p className="text-xs text-muted-foreground">{badge.minTrees}+ trees</p>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </Card>
 
@@ -604,14 +555,14 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-muted-foreground">Trees Planted</span>
-                  <span className="font-semibold text-foreground">12 / 25</span>
+                  <span className="font-semibold text-foreground">0 / 25</span>
                 </div>
                 <Progress value={48} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-muted-foreground">Green Points</span>
-                  <span className="font-semibold text-foreground">280 / 500</span>
+                  <span className="font-semibold text-foreground">0 / 500</span>
                 </div>
                 <Progress value={56} className="h-2" />
               </div>
@@ -623,6 +574,5 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
