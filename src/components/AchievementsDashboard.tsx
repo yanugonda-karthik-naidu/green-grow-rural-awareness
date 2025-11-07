@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Star, Sparkles, Award, Target, Crown, Gift, TrendingUp, Calendar, Zap, Users, Share2 } from "lucide-react";
 import { UserProgress, Badge as UserBadge, Achievement } from "@/hooks/useUserProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import confetti from 'canvas-confetti';
 
 interface AchievementsDashboardProps {
@@ -18,6 +20,7 @@ interface AchievementsDashboardProps {
 export const AchievementsDashboard = ({ progress, badges, achievements, t }: AchievementsDashboardProps) => {
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [showRewardAnimation, setShowRewardAnimation] = useState(false);
+  const [claimingReward, setClaimingReward] = useState(false);
 
   const safeProgress = {
     treesPlanted: progress.trees_planted || 0,
@@ -155,6 +158,31 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const earnedBadges = specialBadges.filter(badge => badge.condition());
   const lockedBadges = specialBadges.filter(badge => !badge.condition());
 
+  // Claim rewards function
+  const handleClaimReward = async () => {
+    if (rewardsUnlocked === 0 || claimingReward) return;
+    
+    setClaimingReward(true);
+    fireConfetti();
+    
+    // Update user progress with claimed seeds
+    const { error } = await supabase
+      .from('user_progress')
+      .update({ 
+        seed_points: safeProgress.seedPoints + (rewardsUnlocked * 100)
+      })
+      .eq('user_id', progress.user_id);
+
+    if (!error) {
+      toast.success(`Claimed ${rewardsUnlocked * 100} seeds!`);
+    } else {
+      toast.error('Failed to claim rewards');
+    }
+    
+    setClaimingReward(false);
+    setShowRewardAnimation(false);
+  };
+
   // Seed reward calculations
   const seedsToNextReward = 100;
   const seedProgress = (safeProgress.seedPoints % seedsToNextReward) / seedsToNextReward * 100;
@@ -257,9 +285,13 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
                 {rewardsUnlocked} rewards unlocked
               </p>
             </div>
-            <Button onClick={() => { fireConfetti(); setShowRewardAnimation(true); }} className="shrink-0">
+            <Button 
+              onClick={handleClaimReward} 
+              className="shrink-0"
+              disabled={rewardsUnlocked === 0 || claimingReward}
+            >
               <Gift className="mr-2 h-4 w-4" />
-              Claim Rewards
+              {rewardsUnlocked > 0 ? `Claim ${rewardsUnlocked * 100} Seeds` : 'No Rewards Yet'}
             </Button>
           </div>
         </CardContent>
@@ -304,132 +336,68 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
           </CardContent>
         </Card>
 
-        {/* Earned Badges */}
+        {/* Your Earned Badges */}
         <Card className="overflow-hidden border-2 border-emerald-500/30 shadow-xl">
           <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
             <CardTitle className="flex items-center gap-2">
               <Award className="h-6 w-6 text-emerald-600" />
-              Special Badges ({earnedBadges.length}/{specialBadges.length})
+              Your Badges ({earnedBadges.length}/{specialBadges.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <ScrollArea className="h-[250px]">
               <div className="space-y-3">
-                {earnedBadges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    onClick={() => setSelectedBadge(badge.id)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${
-                      selectedBadge === badge.id 
-                        ? 'border-primary bg-primary/10 shadow-lg' 
-                        : 'border-border bg-card hover:border-primary/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="text-3xl">{badge.name.split(' ')[0]}</div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{badge.name.split(' ').slice(1).join(' ')}</h4>
-                        <p className="text-xs text-muted-foreground">{badge.desc}</p>
-                      </div>
-                      <Badge variant="secondary" className="shrink-0">
-                        +{badge.seeds} 🌱
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-                {lockedBadges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    className="p-4 rounded-xl border-2 border-dashed border-muted bg-muted/20 opacity-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="text-3xl grayscale">🔒</div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-muted-foreground">{badge.name.split(' ').slice(1).join(' ')}</h4>
-                        <p className="text-xs text-muted-foreground">{badge.desc}</p>
+                {earnedBadges.length > 0 ? (
+                  earnedBadges.map((badge) => (
+                    <div
+                      key={badge.id}
+                      className="p-4 rounded-xl border-2 border-primary bg-primary/10 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl">{badge.name.split(' ')[0]}</div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{badge.name.split(' ').slice(1).join(' ')}</h4>
+                          <p className="text-xs text-muted-foreground">{badge.desc}</p>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0">
+                          +{badge.seeds} 🌱
+                        </Badge>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">No badges earned yet</p>
+                    <p className="text-sm text-muted-foreground">Plant trees to unlock badges!</p>
                   </div>
-                ))}
+                )}
+                {lockedBadges.length > 0 && (
+                  <>
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Locked Badges</p>
+                    </div>
+                    {lockedBadges.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="p-4 rounded-xl border-2 border-dashed border-muted bg-muted/20 opacity-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl grayscale">🔒</div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-muted-foreground">{badge.name.split(' ').slice(1).join(' ')}</h4>
+                            <p className="text-xs text-muted-foreground">{badge.desc}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </ScrollArea>
           </CardContent>
         </Card>
       </div>
 
-      {/* Community Showcase */}
-      <Card className="overflow-hidden border-2 border-blue-500/30 shadow-xl">
-        <CardHeader className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-6 w-6 text-blue-600" />
-            Top Contributors
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Community leaderboard</p>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            {topContributors.map((contributor) => (
-              <div
-                key={contributor.rank}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 ${
-                  contributor.isUser
-                    ? 'border-primary bg-primary/10 shadow-lg'
-                    : 'border-border bg-card hover:border-primary/30'
-                }`}
-              >
-                <div className="text-2xl font-bold text-muted-foreground w-8">
-                  {contributor.rank <= 3 ? ['🥇', '🥈', '🥉'][contributor.rank - 1] : `#${contributor.rank}`}
-                </div>
-                <div className="text-3xl">{contributor.avatar}</div>
-                <div className="flex-1">
-                  <h4 className={`font-semibold ${contributor.isUser ? 'text-primary' : ''}`}>
-                    {contributor.name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    {contributor.trees} trees • {contributor.seeds} seeds
-                  </p>
-                </div>
-                {contributor.rank === 1 && <Crown className="h-6 w-6 text-yellow-500 animate-pulse" />}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Impact Journey Timeline */}
-      {safeProgress.achievementTimeline.length > 0 && (
-        <Card className="overflow-hidden border-2 border-purple-500/30 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-purple-600" />
-              Your Impact Journey
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-4">
-                {safeProgress.achievementTimeline.map((item, idx) => (
-                  <div key={idx} className="flex gap-4 items-start animate-fade-in">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-primary" />
-                      {idx < safeProgress.achievementTimeline.length - 1 && (
-                        <div className="w-0.5 h-16 bg-border" />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="text-xs text-muted-foreground">{item.date}</p>
-                      <p className="font-medium">{item.achievement}</p>
-                      <Badge variant="secondary" className="mt-1">
-                        +{item.seedsEarned} Seeds
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Share Achievement */}
       <div className="flex justify-center">

@@ -222,8 +222,8 @@ const Index = () => {
 
           <TabsContent value="impact">
             <ImpactCounter 
-              progress={progress} 
               plantedTrees={plantedTrees}
+              achievements={achievements}
               t={t} 
             />
           </TabsContent>

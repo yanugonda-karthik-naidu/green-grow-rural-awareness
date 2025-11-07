@@ -44,6 +44,7 @@ interface User {
   treesPlanted: number;
   badge: string;
   location: string;
+  isCurrentUser?: boolean;
 }
 interface CommunityChallenge {
   id: string;
@@ -96,28 +97,7 @@ export const CommunityWall = ({
     loading: analyticsLoading
   } = useRealtimeAnalytics();
   const [messages, setMessages] = useLocalStorage<Message[]>('communityMessages', []);
-  const [users, setUsers] = useLocalStorage<User[]>('communityUsers', [{
-    id: '1',
-    name: 'Ramesh Kumar',
-    points: 450,
-    treesPlanted: 23,
-    badge: 'hero',
-    location: 'Village A'
-  }, {
-    id: '2',
-    name: 'Priya Sharma',
-    points: 380,
-    treesPlanted: 19,
-    badge: 'guardian',
-    location: 'Village B'
-  }, {
-    id: '3',
-    name: 'Amit Patel',
-    points: 320,
-    treesPlanted: 16,
-    badge: 'guardian',
-    location: 'Village A'
-  }]);
+  const [topContributors, setTopContributors] = useState<User[]>([]);
   const [challenges, setLocalChallenges] = useLocalStorage<CommunityChallenge[]>('communityChallenges', [{
     id: '1',
     title: 'Plant 100 trees in our village this week!',
@@ -138,6 +118,64 @@ export const CommunityWall = ({
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
+  // Fetch top contributors from database
+  useEffect(() => {
+    const fetchTopContributors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_progress')
+          .select('user_id, trees_planted, seed_points')
+          .order('trees_planted', { ascending: false })
+          .limit(5);
+
+        if (error || !data) return;
+
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        const contributors: User[] = data
+          .filter(contrib => contrib.trees_planted > 0)
+          .map(contrib => {
+            const badgeInfo = getUserBadge(contrib.trees_planted);
+            return {
+              id: contrib.user_id,
+              name: 'Community Member',
+              points: contrib.seed_points,
+              treesPlanted: contrib.trees_planted,
+              badge: badgeInfo.name,
+              location: 'Community',
+              isCurrentUser: contrib.user_id === currentUser?.id
+            };
+          });
+        
+        setTopContributors(contributors);
+      } catch (err) {
+        console.error('Error fetching contributors:', err);
+      }
+    };
+
+    fetchTopContributors();
+    
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('progress-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_progress',
+        },
+        () => {
+          fetchTopContributors();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Rotate motivational quotes every minute
   useEffect(() => {
     const interval = setInterval(() => {
@@ -152,7 +190,7 @@ export const CommunityWall = ({
     co2Saved: Math.round(analytics?.total_co2_kg || 0),
     o2Generated: Math.round(analytics?.total_o2_lpd || 0),
     areaExpanded: Math.round(analytics?.total_area_m2 || 0),
-    usersInvolved: users.length
+    usersInvolved: topContributors.length > 0 ? topContributors.length : 0
   };
   const getUserBadge = (treesPlanted: number) => {
     if (treesPlanted >= 50) return badges.saver;
@@ -270,7 +308,6 @@ export const CommunityWall = ({
   // Combine local messages with database posts
   const safeMessages = Array.isArray(messages) ? messages : [];
   const safeChallenges = Array.isArray(challenges) ? challenges : [];
-  const safeUsers = Array.isArray(users) ? users : [];
 
   // Convert database posts to Message format
   const dbMessages: Message[] = communityPosts.map(post => ({
@@ -295,7 +332,6 @@ export const CommunityWall = ({
   // Merge and sort by timestamp
   const allMessages = [...dbMessages, ...safeMessages].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const filteredMessages = selectedLocation === "all" ? allMessages : allMessages.filter(msg => msg.location === selectedLocation);
-  const topContributors = [...safeUsers].sort((a, b) => b.points - a.points).slice(0, 5);
   return <div className="space-y-6">
       {/* Motivational Banner */}
       <Card className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
