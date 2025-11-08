@@ -98,13 +98,6 @@ export const CommunityWall = ({
   } = useRealtimeAnalytics();
   const [messages, setMessages] = useLocalStorage<Message[]>('communityMessages', []);
   const [topContributors, setTopContributors] = useState<User[]>([]);
-  const [challenges, setLocalChallenges] = useLocalStorage<CommunityChallenge[]>('communityChallenges', [{
-    id: '1',
-    title: 'Plant 100 trees in our village this week!',
-    target: 100,
-    current: 67,
-    endDate: '2025-11-01'
-  }]);
   const [newMessage, setNewMessage] = useState("");
   const [newComment, setNewComment] = useState<{
     [key: string]: string;
@@ -297,7 +290,11 @@ export const CommunityWall = ({
 
   // Combine local messages with database posts
   const safeMessages = Array.isArray(messages) ? messages : [];
-  const safeChallenges = Array.isArray(challenges) ? challenges : [];
+  
+  // Calculate community challenge from real data
+  const challengeTarget = 100;
+  const challengeCurrent = globalImpact.totalTrees;
+  const challengeProgress = (challengeCurrent / challengeTarget) * 100;
 
   // Convert database posts to Message format
   const dbMessages: Message[] = communityPosts.map(post => ({
@@ -359,18 +356,18 @@ export const CommunityWall = ({
       </Card>
 
       {/* Community Challenge */}
-      {safeChallenges.map(challenge => <Card key={challenge.id} className="p-6 border-2 border-primary/30">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="h-6 w-6 text-primary" />
-            <h3 className="text-lg font-bold text-foreground">Community Challenge</h3>
-          </div>
-          <p className="text-foreground mb-3">{challenge.title}</p>
-          <Progress value={challenge.current / challenge.target * 100} className="h-3 mb-2" />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{challenge.current}0 / 100 trees{challenge.target} trees</span>
-            <span>Ends: {challenge.endDate}</span>
-          </div>
-        </Card>)}
+      <Card className="p-6 border-2 border-primary/30">
+        <div className="flex items-center gap-2 mb-3">
+          <Trophy className="h-6 w-6 text-primary" />
+          <h3 className="text-lg font-bold text-foreground">Community Challenge</h3>
+        </div>
+        <p className="text-foreground mb-3">Plant {challengeTarget} trees together as a community!</p>
+        <Progress value={Math.min(challengeProgress, 100)} className="h-3 mb-2" />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>{challengeCurrent} / {challengeTarget} trees</span>
+          <span>{challengeCurrent >= challengeTarget ? '✓ Completed!' : `${Math.max(0, challengeTarget - challengeCurrent)} more to go`}</span>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Feed */}
