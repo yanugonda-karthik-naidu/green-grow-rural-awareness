@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2 } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
@@ -183,6 +183,15 @@ const Index = () => {
         
         <div className="absolute top-4 right-4 z-20 flex gap-2">
           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => navigate('/profile')}
+            className="gap-2"
+          >
+            <UserIcon className="h-4 w-4" />
+            Profile
+          </Button>
           <Button 
             variant="secondary" 
             size="sm" 

@@ -14,11 +14,15 @@ import heroImage from "@/assets/hero-forest.jpg";
 const emailSchema = z.string().email("Invalid email address");
 const phoneSchema = z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be less than 15 digits");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
+const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,6 +33,8 @@ const Auth = () => {
     try {
       emailSchema.parse(email);
       passwordSchema.parse(password);
+      nameSchema.parse(name);
+      locationSchema.parse(location);
     } catch (error: any) {
       toast({
         title: "Validation Error",
@@ -40,13 +46,14 @@ const Auth = () => {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
-          email: email,
+          display_name: name,
+          location: location,
         }
       },
     });
@@ -57,7 +64,21 @@ const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
+    } else if (data.user) {
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          display_name: name,
+          email: email,
+          location: location,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+      }
+
       toast({
         title: "Success!",
         description: "Account created successfully! You can now login.",
@@ -111,6 +132,8 @@ const Auth = () => {
     try {
       phoneSchema.parse(phone);
       passwordSchema.parse(password);
+      nameSchema.parse(name);
+      locationSchema.parse(location);
     } catch (error: any) {
       toast({
         title: "Validation Error",
@@ -122,12 +145,14 @@ const Auth = () => {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       phone,
       password,
       options: {
         data: {
           phone_number: phone,
+          display_name: name,
+          location: location,
         }
       },
     });
@@ -138,7 +163,21 @@ const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
+    } else if (data.user) {
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          display_name: name,
+          phone_number: phone,
+          location: location,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+      }
+
       toast({
         title: "Success!",
         description: "Account created successfully! You can now login.",
@@ -253,6 +292,28 @@ const Auth = () => {
                   <TabsContent value="signup">
                     <form onSubmit={handleEmailSignup} className="space-y-4">
                       <div className="space-y-2">
+                        <Label htmlFor="signup-name">Name</Label>
+                        <Input
+                          id="signup-name"
+                          type="text"
+                          placeholder="Your full name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-location">Location</Label>
+                        <Input
+                          id="signup-location"
+                          type="text"
+                          placeholder="Your city or village"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="signup-email">Email</Label>
                         <Input
                           id="signup-email"
@@ -321,6 +382,28 @@ const Auth = () => {
 
                   <TabsContent value="signup">
                     <form onSubmit={handlePhoneSignup} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-phone-name">Name</Label>
+                        <Input
+                          id="signup-phone-name"
+                          type="text"
+                          placeholder="Your full name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-phone-location">Location</Label>
+                        <Input
+                          id="signup-phone-location"
+                          type="text"
+                          placeholder="Your city or village"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          required
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-phone">Phone Number</Label>
                         <Input
