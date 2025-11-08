@@ -111,7 +111,7 @@ export const CommunityWall = ({
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
-  // Fetch top contributors from database
+  // Fetch top contributors from database with real user names
   useEffect(() => {
     const fetchTopContributors = async () => {
       try {
@@ -122,20 +122,32 @@ export const CommunityWall = ({
           ascending: false
         }).limit(5);
         if (error || !data) return;
+        
         const {
           data: {
             user: currentUser
           }
         } = await supabase.auth.getUser();
+        
+        // Fetch profile data for all contributors
+        const userIds = data.filter(contrib => contrib.trees_planted > 0).map(contrib => contrib.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, location')
+          .in('id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        
         const contributors: User[] = data.filter(contrib => contrib.trees_planted > 0).map(contrib => {
           const badgeInfo = getUserBadge(contrib.trees_planted);
+          const profile = profileMap.get(contrib.user_id);
           return {
             id: contrib.user_id,
-            name: 'Community Member',
+            name: profile?.display_name || 'Community Member',
             points: contrib.seed_points,
             treesPlanted: contrib.trees_planted,
             badge: badgeInfo.name,
-            location: 'Community',
+            location: profile?.location || 'Community',
             isCurrentUser: contrib.user_id === currentUser?.id
           };
         });

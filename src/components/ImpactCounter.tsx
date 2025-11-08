@@ -29,26 +29,35 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
   // Calculate biodiversity impact
   const wildlifeSheltered = Math.floor(plantedTrees.length * 1.5); // Estimate 1.5 animals per tree
 
-  // Weekly progress data - calculate from actual planted trees grouped by week
-  const weeklyData = plantedTrees.length > 0 ? (() => {
-    const weeklyMap: Record<string, { trees: number; co2: number }> = {};
-    const now = Date.now();
+  // Advanced timeline data - calculate cumulative impact over time
+  const timelineData = plantedTrees.length > 0 ? (() => {
+    const sortedTrees = [...plantedTrees].sort((a, b) => 
+      new Date(a.planted_date).getTime() - new Date(b.planted_date).getTime()
+    );
     
-    plantedTrees.forEach((tree) => {
-      const plantedTime = new Date(tree.planted_date).getTime();
-      const weeksPassed = Math.max(1, Math.ceil((now - plantedTime) / (7 * 24 * 60 * 60 * 1000)));
-      const weekKey = `Week ${weeksPassed}`;
+    let cumulativeTrees = 0;
+    let cumulativeCO2 = 0;
+    let cumulativeO2 = 0;
+    let cumulativeWater = 0;
+    
+    return sortedTrees.map((tree, idx) => {
+      cumulativeTrees += 1;
+      cumulativeCO2 += tree.impact_co2_kg || 25;
+      cumulativeO2 += tree.impact_o2_l_per_day || 260;
+      cumulativeWater += 50;
       
-      if (!weeklyMap[weekKey]) {
-        weeklyMap[weekKey] = { trees: 0, co2: 0 };
-      }
-      weeklyMap[weekKey].trees += 1;
-      weeklyMap[weekKey].co2 += tree.impact_co2_kg || 25;
+      return {
+        date: format(new Date(tree.planted_date), "MMM d"),
+        trees: cumulativeTrees,
+        co2: Math.round(cumulativeCO2),
+        o2: Math.round(cumulativeO2),
+        water: Math.round(cumulativeWater),
+      };
+    }).filter((_, idx, arr) => {
+      // Show max 12 data points for readability
+      const step = Math.max(1, Math.floor(arr.length / 12));
+      return idx % step === 0 || idx === arr.length - 1;
     });
-    
-    return Object.entries(weeklyMap)
-      .map(([week, data]) => ({ week, ...data }))
-      .slice(-4);
   })() : [];
 
   return (
@@ -66,6 +75,23 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
 
       {/* Impact Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-2 border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:shadow-xl">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t.treesPlanted}
+            </CardTitle>
+            <TreeDeciduous className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">
+              {plantedTrees.length}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Growing strong together
+            </p>
+          </CardContent>
+        </Card>
+        
         <Card className="border-2 border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -172,26 +198,76 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
         </Card>
       </div>
 
-      {/* Weekly Progress Chart */}
-      {weeklyData.length > 0 && (
+      {/* Advanced Impact Timeline Chart */}
+      {timelineData.length > 0 && (
         <Card className="border-2 border-teal-500/20">
           <CardHeader className="bg-gradient-to-r from-teal-500/10 to-cyan-500/10">
             <CardTitle className="text-xl font-bold flex items-center gap-2 text-teal-600">
               <Sparkles className="h-5 w-5" />
               Your Impact Over Time
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Weekly growth timeline</p>
+            <p className="text-xs text-muted-foreground">Cumulative environmental progress</p>
           </CardHeader>
           <CardContent className="p-6">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={weeklyData}>
-                <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-                <Line type="monotone" dataKey="trees" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 5 }} name="Trees Planted" />
-                <Line type="monotone" dataKey="co2" stroke="#0ea5e9" strokeWidth={3} dot={{ fill: '#0ea5e9', r: 5 }} name="CO₂ Reduced (kg)" />
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={timelineData}>
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '12px'
+                  }} 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="trees" 
+                  stroke="#10b981" 
+                  strokeWidth={3} 
+                  dot={{ fill: '#10b981', r: 4 }} 
+                  name="Trees 🌳" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="co2" 
+                  stroke="#0ea5e9" 
+                  strokeWidth={3} 
+                  dot={{ fill: '#0ea5e9', r: 4 }} 
+                  name="CO₂ (kg) 🍃" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="water" 
+                  stroke="#a855f7" 
+                  strokeWidth={3} 
+                  dot={{ fill: '#a855f7', r: 4 }} 
+                  name="Water (L) 💧" 
+                />
               </LineChart>
             </ResponsiveContainer>
+            <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#10b981]" />
+                <span className="text-muted-foreground">Trees Planted</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#0ea5e9]" />
+                <span className="text-muted-foreground">CO₂ Reduced (kg)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#a855f7]" />
+                <span className="text-muted-foreground">Water Saved (L)</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

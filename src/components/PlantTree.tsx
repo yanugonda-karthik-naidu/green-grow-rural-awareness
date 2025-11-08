@@ -180,6 +180,26 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
         });
       }
       
+      // Share to community wall if public
+      if (isPublic) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, location')
+          .eq('id', user.id)
+          .single();
+        
+        const authorName = profile?.display_name || user.email?.split('@')[0] || 'Anonymous';
+        const postContent = `🌳 Just planted a ${plantName}! ${description ? description : 'Growing green for a better tomorrow.'} #TreePlanting`;
+        
+        await supabase.from('community_posts').insert({
+          user_id: user.id,
+          content: postContent,
+          author_name: authorName,
+          image_url: imagePath,
+          likes: 0
+        });
+      }
+      
       // Update parent component
       const impact = {
         treesPlanted: 1,
