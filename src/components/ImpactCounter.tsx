@@ -209,48 +209,72 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
             <p className="text-xs text-muted-foreground">Cumulative environmental progress</p>
           </CardHeader>
           <CardContent className="p-6">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={350}>
               <LineChart data={timelineData}>
+                <defs>
+                  <linearGradient id="treesGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="co2Gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#a855f7" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <XAxis 
                   dataKey="date" 
                   stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '12px', fontWeight: 500 }}
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '12px', fontWeight: 500 }}
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }} 
+                    border: '2px solid hsl(var(--border))',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                  }}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="trees" 
                   stroke="#10b981" 
-                  strokeWidth={3} 
-                  dot={{ fill: '#10b981', r: 4 }} 
-                  name="Trees 🌳" 
+                  strokeWidth={4} 
+                  dot={{ fill: '#10b981', r: 6, strokeWidth: 2, stroke: '#fff' }} 
+                  activeDot={{ r: 8 }}
+                  name="Trees 🌳"
+                  fill="url(#treesGradient)"
                 />
                 <Line 
                   type="monotone" 
                   dataKey="co2" 
                   stroke="#0ea5e9" 
-                  strokeWidth={3} 
-                  dot={{ fill: '#0ea5e9', r: 4 }} 
-                  name="CO₂ (kg) 🍃" 
+                  strokeWidth={4} 
+                  dot={{ fill: '#0ea5e9', r: 6, strokeWidth: 2, stroke: '#fff' }} 
+                  activeDot={{ r: 8 }}
+                  name="CO₂ (kg) 🍃"
+                  fill="url(#co2Gradient)"
                 />
                 <Line 
                   type="monotone" 
                   dataKey="water" 
                   stroke="#a855f7" 
-                  strokeWidth={3} 
-                  dot={{ fill: '#a855f7', r: 4 }} 
-                  name="Water (L) 💧" 
+                  strokeWidth={4} 
+                  dot={{ fill: '#a855f7', r: 6, strokeWidth: 2, stroke: '#fff' }} 
+                  activeDot={{ r: 8 }}
+                  name="Water (L) 💧"
+                  fill="url(#waterGradient)"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -327,23 +351,29 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {plantedTrees.map((tree) => {
                 const treeInfo = treeData.find((t) => t.id === tree.tree_name);
-                const displayImage = tree.image_path 
-                  ? `https://zxbnkivvrrfpzwfcfidk.supabase.co/storage/v1/object/public/plant-images/${tree.image_path}`
-                  : treeInfo?.image;
+                
+                // Import tree images properly
+                const getTreeImage = () => {
+                  if (tree.image_path) {
+                    return `https://zxbnkivvrrfpzwfcfidk.supabase.co/storage/v1/object/public/plant-images/${tree.image_path}`;
+                  }
+                  // Use imported images from treeData
+                  return treeInfo?.image || "/placeholder.svg";
+                };
 
                 return (
                   <Card
                     key={tree.id}
                     className="overflow-hidden border-2 border-muted hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer group"
                   >
-                    <div className="relative h-48 overflow-hidden bg-muted">
+                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950">
                       <img
-                        src={displayImage}
+                        src={getTreeImage()}
                         alt={tree.tree_name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = treeInfo?.image || "/placeholder.svg";
+                          target.src = "/placeholder.svg";
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

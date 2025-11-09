@@ -158,9 +158,13 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
   const earnedBadges = specialBadges.filter(badge => badge.condition());
   const lockedBadges = specialBadges.filter(badge => !badge.condition());
 
-  // Claim rewards function
+  // Track claimed rewards
+  const [claimedRewards, setClaimedRewards] = useState(0);
+
+  // Claim rewards function - fixed to prevent auto-unlock
   const handleClaimReward = async () => {
-    if (rewardsUnlocked === 0 || claimingReward) return;
+    const availableRewards = rewardsUnlocked - claimedRewards;
+    if (availableRewards === 0 || claimingReward) return;
     
     setClaimingReward(true);
     fireConfetti();
@@ -169,12 +173,13 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
     const { error } = await supabase
       .from('user_progress')
       .update({ 
-        seed_points: safeProgress.seedPoints + (rewardsUnlocked * 100)
+        seed_points: safeProgress.seedPoints + (availableRewards * 100)
       })
       .eq('user_id', progress.user_id);
 
     if (!error) {
-      toast.success(`Claimed ${rewardsUnlocked * 100} seeds!`);
+      setClaimedRewards(rewardsUnlocked);
+      toast.success(`Claimed ${availableRewards * 100} seeds!`);
     } else {
       toast.error('Failed to claim rewards');
     }
@@ -288,10 +293,10 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
             <Button 
               onClick={handleClaimReward} 
               className="shrink-0"
-              disabled={rewardsUnlocked === 0 || claimingReward}
+              disabled={(rewardsUnlocked - claimedRewards) === 0 || claimingReward}
             >
               <Gift className="mr-2 h-4 w-4" />
-              {rewardsUnlocked > 0 ? `Claim ${rewardsUnlocked * 100} Seeds` : 'No Rewards Yet'}
+              {(rewardsUnlocked - claimedRewards) > 0 ? `Claim ${(rewardsUnlocked - claimedRewards) * 100} Seeds` : 'No Rewards Available'}
             </Button>
           </div>
         </CardContent>

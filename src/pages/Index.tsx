@@ -11,11 +11,11 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
 import { AchievementsDashboard } from "@/components/AchievementsDashboard";
-import { TreeLibrary } from "@/components/TreeLibrary";
+import { TreeLibraryExpanded } from "@/components/TreeLibraryExpanded";
 import { Quiz } from "@/components/Quiz";
-import { MiniGames } from "@/components/MiniGames";
+import { MiniGamesExpanded } from "@/components/MiniGamesExpanded";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
-import { CommunityWall } from "@/components/CommunityWall";
+import { CommunityWall as CommunityWallUpdated } from "@/components/CommunityWallUpdated";
 import { LearnSection } from "@/components/LearnSection";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
@@ -247,7 +247,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="library">
-            <TreeLibrary language={language} t={t} />
+            <TreeLibraryExpanded language={language} t={t} />
           </TabsContent>
 
           <TabsContent value="learn">
@@ -267,9 +267,9 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="games">
-            <MiniGames 
+            <MiniGamesExpanded 
               progress={progress} 
-              onProgressUpdate={(update) => dbUpdateProgress({ seed_points: update.seedPoints })}
+              onProgressUpdate={(update) => dbUpdateProgress({ seed_points: (progress.seed_points || 0) + update.seedPoints })}
             />
           </TabsContent>
 
@@ -278,7 +278,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="community">
-            <CommunityWall t={t} />
+            <CommunityWallUpdated t={t} />
           </TabsContent>
         </Tabs>
       </div>
