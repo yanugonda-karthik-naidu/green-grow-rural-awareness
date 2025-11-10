@@ -109,7 +109,7 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
     ? ((safeProgress.treesPlanted - currentTier.threshold) / (nextTier.threshold - currentTier.threshold)) * 100
     : 100;
 
-  // Special badges with seed rewards
+  // Special badges with seed rewards - Expanded list
   const specialBadges = [
     { 
       id: "first_tree", 
@@ -152,6 +152,34 @@ export const AchievementsDashboard = ({ progress, badges, achievements, t }: Ach
       desc: t.badgeClimateHeroDesc, 
       condition: () => safeProgress.co2Reduced >= 500,
       seeds: 30
+    },
+    { 
+      id: "tree_master", 
+      name: `🌳 Tree Master`, 
+      desc: "Plant 50 trees to become a master", 
+      condition: () => safeProgress.treesPlanted >= 50,
+      seeds: 40
+    },
+    { 
+      id: "seed_collector", 
+      name: `💰 Seed Collector`, 
+      desc: "Collect 1000 seeds", 
+      condition: () => safeProgress.seedPoints >= 1000,
+      seeds: 100
+    },
+    { 
+      id: "forest_builder", 
+      name: `🏞️ Forest Builder`, 
+      desc: "Create your own forest with 75 trees", 
+      condition: () => safeProgress.treesPlanted >= 75,
+      seeds: 75
+    },
+    { 
+      id: "eco_champion", 
+      name: `🏆 Eco Champion`, 
+      desc: "Reach 150 trees planted", 
+      condition: () => safeProgress.treesPlanted >= 150,
+      seeds: 150
     },
   ];
 

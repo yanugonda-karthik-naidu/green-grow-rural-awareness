@@ -5,9 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Heart, ThumbsUp, MapPin, Globe, Sparkles, TrendingUp, Send, Trophy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Heart, ThumbsUp, MapPin, Globe, Sparkles, TrendingUp, Send, Trophy, MessageCircle } from "lucide-react";
 import { useCommunityPosts } from "@/hooks/useCommunityPosts";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
+import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -271,40 +273,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                   <p className="text-muted-foreground">No posts yet in this location. Be the first to share!</p>
                 </Card>
               ) : (
-                filteredPosts.map((post: any) => {
-                  const contributor = topContributors.find(c => c.name === post.author_name);
-                  return (
-                    <Card key={post.id} className="p-6 hover:shadow-lg transition-shadow">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xl">
-                          {contributor?.badgeIcon || '🌱'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold">{post.author_name}</p>
-                            <Badge variant="secondary">
-                              {contributor?.badge || 'Green Starter'}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {contributor?.location || 'Community'} · {new Date(post.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-foreground mb-3">{post.content}</p>
-                      {post.image_url && (
-                        <img src={post.image_url} alt="Post" className="rounded-lg mb-3 w-full" />
-                      )}
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <ThumbsUp className="h-4 w-4 mr-1" />
-                          {post.likes || 0}
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })
+                filteredPosts.map((post: any) => <PostCard key={post.id} post={post} topContributors={topContributors} />)
               )}
             </div>
           </ScrollArea>
@@ -347,5 +316,106 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Post Card Component with Likes and Comments
+const PostCard = ({ post, topContributors }: { post: any; topContributors: any[] }) => {
+  const contributor = topContributors.find(c => c.name === post.author_name);
+  const { likes, comments, hasLiked, likesCount, commentsCount, toggleLike, addComment } = usePostInteractions(post.id);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+    addComment(newComment);
+    setNewComment("");
+  };
+
+  return (
+    <Card className="p-6 hover:shadow-lg transition-shadow">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xl">
+          {contributor?.badgeIcon || '🌱'}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold">{post.author_name}</p>
+            <Badge variant="secondary">
+              {contributor?.badge || 'Green Starter'}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {contributor?.location || 'Community'} · {new Date(post.created_at).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+      
+      <p className="text-foreground mb-3">{post.content}</p>
+      
+      {post.image_url && (
+        <img src={post.image_url} alt="Post" className="rounded-lg mb-3 w-full" />
+      )}
+      
+      <div className="flex gap-2 items-center border-t border-border pt-3">
+        <Button 
+          variant={hasLiked ? "default" : "ghost"} 
+          size="sm"
+          onClick={toggleLike}
+          className={hasLiked ? "bg-primary" : ""}
+        >
+          <ThumbsUp className={`h-4 w-4 mr-1 ${hasLiked ? 'fill-current' : ''}`} />
+          {likesCount}
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => setShowComments(!showComments)}
+        >
+          <MessageCircle className="h-4 w-4 mr-1" />
+          {commentsCount}
+        </Button>
+      </div>
+
+      {showComments && (
+        <div className="mt-4 space-y-3 border-t border-border pt-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Write a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
+              className="flex-1"
+            />
+            <Button onClick={handleAddComment} size="sm">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <ScrollArea className="max-h-[200px]">
+            <div className="space-y-2">
+              {comments.map((comment) => (
+                <Card key={comment.id} className="p-3 bg-muted/30">
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">
+                      🌱
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold">{comment.author_name}</p>
+                      <p className="text-sm text-foreground">{comment.content}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(comment.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </Card>
   );
 };

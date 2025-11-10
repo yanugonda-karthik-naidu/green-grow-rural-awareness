@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Leaf, Droplets, Wind, Sun, Calendar, Zap, TreeDeciduous, Sparkles } from "lucide-react";
 import { PlantedTree, Achievement } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
+import { expandedTreeData } from "@/lib/expandedTreeData";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -350,15 +351,23 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {plantedTrees.map((tree) => {
-                const treeInfo = treeData.find((t) => t.id === tree.tree_name);
+                // Try to find tree info from both treeData and expandedTreeData
+                const treeInfo = treeData.find((t) => t.id === tree.tree_name) || 
+                                expandedTreeData.find((t) => t.id === tree.tree_name) ||
+                                expandedTreeData.find((t) => t.nameEn.toLowerCase() === tree.tree_name.toLowerCase());
                 
-                // Import tree images properly
+                // Get tree image with proper fallback
                 const getTreeImage = () => {
+                  // First try user uploaded image
                   if (tree.image_path) {
                     return `https://zxbnkivvrrfpzwfcfidk.supabase.co/storage/v1/object/public/plant-images/${tree.image_path}`;
                   }
-                  // Use imported images from treeData
-                  return treeInfo?.image || "/placeholder.svg";
+                  // Then try tree info image
+                  if (treeInfo?.image) {
+                    return treeInfo.image;
+                  }
+                  // Default fallback
+                  return "/placeholder.svg";
                 };
 
                 return (
@@ -373,7 +382,12 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = "/placeholder.svg";
+                          // Try treeInfo image as fallback
+                          if (treeInfo?.image && target.src !== treeInfo.image) {
+                            target.src = treeInfo.image;
+                          } else {
+                            target.src = "/placeholder.svg";
+                          }
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -386,6 +400,20 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                         </p>
                       </div>
                     </div>
+                    
+                    {tree.description && (
+                      <div className="p-3 border-t border-border">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{tree.description}</p>
+                      </div>
+                    )}
+                    
+                    {tree.location && (
+                      <div className="px-3 pb-3">
+                        <Badge variant="secondary" className="text-xs">
+                          📍 {tree.location}
+                        </Badge>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
