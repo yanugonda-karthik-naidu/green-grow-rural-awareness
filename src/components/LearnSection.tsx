@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Droplets, Sun, Leaf, Shield, TreeDeciduous, Sprout, Heart, Cloud } from "lucide-react";
+import { Droplets, Sun, Leaf, Shield, TreeDeciduous, Sprout, Heart, Cloud, Volume2, VolumeX, CheckCircle, XCircle } from "lucide-react";
 
 interface LearnSectionProps {
   language: string;
@@ -9,6 +11,56 @@ interface LearnSectionProps {
 }
 
 export const LearnSection = ({ language, t }: LearnSectionProps) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentSpeakingId, setCurrentSpeakingId] = useState<string | null>(null);
+
+  const speakContent = (text: string, id: string) => {
+    if ('speechSynthesis' in window) {
+      if (isSpeaking && currentSpeakingId === id) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        setCurrentSpeakingId(null);
+        return;
+      }
+      
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-US';
+      utterance.rate = 0.9;
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setCurrentSpeakingId(null);
+      };
+      window.speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+      setCurrentSpeakingId(id);
+    }
+  };
+
+  // Myths vs Facts data
+  const mythsFacts = {
+    en: [
+      { myth: "Planting trees is only for farmers", fact: "Anyone can plant trees - in pots, balconies, rooftops, or community spaces" },
+      { myth: "Trees take too long to grow", fact: "Fast-growing species like Moringa can grow 3-4 meters in the first year" },
+      { myth: "One tree doesn't make a difference", fact: "One tree absorbs 48 lbs of CO₂/year and provides oxygen for 2-10 people" },
+      { myth: "Trees need a lot of maintenance", fact: "Once established (1-2 years), most native trees need minimal care" },
+      { myth: "Urban areas can't support trees", fact: "Cities benefit most from trees - reducing heat by 2-8°F and improving air quality" },
+    ],
+    te: [
+      { myth: "చెట్లు నాటడం రైతులకు మాత్రమే", fact: "ఎవరైనా చెట్లు నాటవచ్చు - కుండలలో, బాల్కనీలలో, పైకప్పులలో" },
+      { myth: "చెట్లు పెరగడానికి చాలా సమయం పడుతుంది", fact: "మునగ వంటి వేగంగా పెరిగే జాతులు మొదటి సంవత్సరంలో 3-4 మీటర్లు పెరుగుతాయి" },
+      { myth: "ఒక చెట్టు తేడా చేయదు", fact: "ఒక చెట్టు సంవత్సరానికి 48 పౌండ్ల CO₂ను గ్రహిస్తుంది" },
+      { myth: "చెట్లకు చాలా నిర్వహణ అవసరం", fact: "స్థాపించిన తర్వాత చాలా స్థానిక చెట్లకు తక్కువ సంరక్షణ అవసరం" },
+      { myth: "పట్టణ ప్రాంతాలు చెట్లకు మద్దతు ఇవ్వవు", fact: "నగరాలు చెట్ల నుండి అత్యధిక ప్రయోజనం పొందుతాయి" },
+    ],
+    hi: [
+      { myth: "पेड़ लगाना केवल किसानों के लिए है", fact: "कोई भी पेड़ लगा सकता है - गमलों, बालकनियों, छतों पर" },
+      { myth: "पेड़ों को बढ़ने में बहुत समय लगता है", fact: "मोरिंगा जैसी तेजी से बढ़ने वाली प्रजातियां पहले साल में 3-4 मीटर बढ़ सकती हैं" },
+      { myth: "एक पेड़ से कोई फर्क नहीं पड़ता", fact: "एक पेड़ प्रति वर्ष 48 पाउंड CO₂ अवशोषित करता है" },
+      { myth: "पेड़ों को बहुत रखरखाव की जरूरत है", fact: "स्थापित होने के बाद अधिकांश देशी पेड़ों को न्यूनतम देखभाल की आवश्यकता होती है" },
+      { myth: "शहरी क्षेत्र पेड़ों का समर्थन नहीं कर सकते", fact: "शहरों को पेड़ों से सबसे अधिक लाभ होता है" },
+    ]
+  };
   const topics = [
     {
       icon: Leaf,
@@ -268,20 +320,62 @@ export const LearnSection = ({ language, t }: LearnSectionProps) => {
     }
   ];
 
+  const currentMythsFacts = mythsFacts[language as keyof typeof mythsFacts] || mythsFacts.en;
+
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-primary mb-2">{t.learnGrow}</h2>
-        <p className="text-muted-foreground">Comprehensive guide to understanding and growing trees</p>
+    <div className="space-y-8">
+      {/* Hero Header */}
+      <div className="text-center p-8 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl border-2 border-green-500/20">
+        <div className="inline-block p-4 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full mb-4">
+          <TreeDeciduous className="h-12 w-12 text-green-600 animate-pulse" />
+        </div>
+        <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+          📚 {t.learnGrow}
+        </h2>
+        <p className="text-muted-foreground text-lg">Comprehensive guide to understanding and growing trees</p>
+        <p className="text-sm text-primary mt-2">🔊 Click the speaker icon to hear content read aloud</p>
       </div>
+
+      {/* Myths vs Facts Section */}
+      <Card className="p-6 border-2 border-amber-500/30 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+        <h3 className="text-2xl font-bold text-amber-600 mb-6 flex items-center gap-2">
+          <Shield className="h-6 w-6" />
+          🎯 Myths vs Facts
+        </h3>
+        <div className="grid gap-4">
+          {currentMythsFacts.map((item, idx) => (
+            <div key={idx} className="grid md:grid-cols-2 gap-4">
+              <Card className="p-4 border-2 border-red-300/50 bg-red-50 dark:bg-red-950/20">
+                <div className="flex items-start gap-3">
+                  <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-red-600 mb-1">MYTH</p>
+                    <p className="text-sm text-foreground">{item.myth}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-4 border-2 border-green-300/50 bg-green-50 dark:bg-green-950/20">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-green-600 mb-1">FACT</p>
+                    <p className="text-sm text-foreground">{item.fact}</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ))}
+        </div>
+      </Card>
       
+      {/* Learning Topics */}
       <div className="space-y-6">
         {topics.map((topic, idx) => {
           const title = language === 'en' ? topic.title.en : language === 'te' ? topic.title.te : topic.title.hi;
           const sections = language === 'en' ? topic.sections.en : language === 'te' ? topic.sections.te : topic.sections.hi;
           
           return (
-            <Card key={idx} className="p-6 hover:shadow-lg transition-all">
+            <Card key={idx} className="p-6 hover:shadow-lg transition-all border-2 border-primary/20">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-primary/10 rounded-full">
                   <topic.icon className="h-6 w-6 text-primary" />
@@ -298,14 +392,31 @@ export const LearnSection = ({ language, t }: LearnSectionProps) => {
                   ))}
                 </TabsList>
                 
-                {sections.map((section, sIdx) => (
-                  <TabsContent key={sIdx} value={String(sIdx)} className="space-y-3">
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-lg mb-2 text-foreground">{section.subtitle}</h4>
-                      <p className="text-muted-foreground leading-relaxed">{section.content}</p>
-                    </div>
-                  </TabsContent>
-                ))}
+                {sections.map((section, sIdx) => {
+                  const contentId = `${idx}-${sIdx}`;
+                  return (
+                    <TabsContent key={sIdx} value={String(sIdx)} className="space-y-3">
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-lg text-foreground">{section.subtitle}</h4>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => speakContent(section.content, contentId)}
+                            className="shrink-0"
+                          >
+                            {isSpeaking && currentSpeakingId === contentId ? (
+                              <VolumeX className="h-4 w-4 text-destructive" />
+                            ) : (
+                              <Volume2 className="h-4 w-4 text-primary" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-muted-foreground leading-relaxed">{section.content}</p>
+                      </div>
+                    </TabsContent>
+                  );
+                })}
               </Tabs>
             </Card>
           );
