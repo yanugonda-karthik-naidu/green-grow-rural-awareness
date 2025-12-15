@@ -276,7 +276,8 @@ const Index = () => {
               progress={progress}
               badges={badges}
               achievements={achievements}
-              t={t} 
+              t={t}
+              onRefresh={refetch}
             />
           </TabsContent>
 
