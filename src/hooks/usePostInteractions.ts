@@ -16,13 +16,23 @@ export const usePostInteractions = (postId: string) => {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [hasLiked, setHasLiked] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
+  // Fetch current user once
   useEffect(() => {
-    const fetchInteractions = async () => {
-      // Get current user
+    const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user?.id || null);
+      setInitialized(true);
+    };
+    getUser();
+  }, []);
 
+  // Fetch interactions and subscribe to realtime
+  useEffect(() => {
+    if (!initialized) return;
+
+    const fetchInteractions = async () => {
       // Fetch likes
       const { data: likesData } = await supabase
         .from('post_likes')
@@ -31,7 +41,7 @@ export const usePostInteractions = (postId: string) => {
 
       if (likesData) {
         setLikes(likesData);
-        setHasLiked(likesData.some(like => like.user_id === user?.id));
+        setHasLiked(likesData.some(like => like.user_id === currentUserId));
       }
 
       // Fetch comments
@@ -61,11 +71,14 @@ export const usePostInteractions = (postId: string) => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setLikes(prev => [...prev, payload.new]);
-            if (payload.new.user_id === currentUserId) setHasLiked(true);
+            setLikes(prev => {
+              if (prev.some(l => l.id === (payload.new as any).id)) return prev;
+              return [...prev, payload.new];
+            });
+            if ((payload.new as any).user_id === currentUserId) setHasLiked(true);
           } else if (payload.eventType === 'DELETE') {
-            setLikes(prev => prev.filter(like => like.id !== payload.old.id));
-            if (payload.old.user_id === currentUserId) setHasLiked(false);
+            setLikes(prev => prev.filter(like => like.id !== (payload.old as any).id));
+            if ((payload.old as any).user_id === currentUserId) setHasLiked(false);
           }
         }
       )
@@ -83,9 +96,12 @@ export const usePostInteractions = (postId: string) => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setComments(prev => [...prev, payload.new as PostComment]);
+            setComments(prev => {
+              if (prev.some(c => c.id === (payload.new as PostComment).id)) return prev;
+              return [...prev, payload.new as PostComment];
+            });
           } else if (payload.eventType === 'DELETE') {
-            setComments(prev => prev.filter(comment => comment.id !== payload.old.id));
+            setComments(prev => prev.filter(comment => comment.id !== (payload.old as any).id));
           }
         }
       )
@@ -95,7 +111,7 @@ export const usePostInteractions = (postId: string) => {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(commentsChannel);
     };
-  }, [postId, currentUserId]);
+  }, [postId, currentUserId, initialized]);
 
   const toggleLike = async () => {
     const { data: { user } } = await supabase.auth.getUser();
