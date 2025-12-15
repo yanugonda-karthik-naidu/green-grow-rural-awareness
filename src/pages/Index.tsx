@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
@@ -17,6 +18,7 @@ import { MiniGamesExpanded } from "@/components/MiniGamesExpanded";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall as CommunityWallUpdated } from "@/components/CommunityWallUpdated";
 import { LearnSection } from "@/components/LearnSection";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
 
@@ -159,35 +161,67 @@ const Index = () => {
     { id: 'community', label: t.communityWall, icon: Users },
   ];
 
+  const nextTier = progress.trees_planted >= 100 ? null : 
+    progress.trees_planted >= 50 ? 100 :
+    progress.trees_planted >= 25 ? 50 :
+    progress.trees_planted >= 10 ? 25 :
+    progress.trees_planted >= 1 ? 10 : 1;
+
+  const tierProgress = nextTier ? (progress.trees_planted / nextTier) * 100 : 100;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+      {/* Hero Section with Animated Background */}
       <div 
-        className="relative h-[400px] bg-cover bg-center flex items-center justify-center"
+        className="relative h-[500px] bg-cover bg-center flex items-center justify-center overflow-hidden"
         style={{ backgroundImage: `url(${heroImage})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
-        <div className="relative z-10 text-center text-white px-4">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 animate-slide-up">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
+        <AnimatedBackground />
+        
+        <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mb-6 animate-fade-in">
+            <Leaf className="h-5 w-5 text-green-400" />
+            <span className="text-sm font-medium">Digital Plantation Platform</span>
+            <Sparkles className="h-4 w-4 text-yellow-400" />
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-bold mb-4 animate-slide-up bg-gradient-to-r from-white via-green-200 to-white bg-clip-text text-transparent">
             {t.welcome}
           </h1>
-          <p className="text-2xl md:text-3xl mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <p className="text-xl md:text-2xl mb-6 animate-slide-up text-white/90" style={{ animationDelay: '0.1s' }}>
             {t.subtitle}
           </p>
+          
           <div 
-            className="text-xl md:text-2xl font-semibold bg-primary/80 backdrop-blur-sm px-6 py-3 rounded-full inline-block animate-pulse-soft"
+            className="text-lg md:text-xl font-semibold bg-gradient-to-r from-primary/90 to-secondary/90 backdrop-blur-sm px-8 py-4 rounded-full inline-block animate-pulse-soft shadow-2xl border border-white/20"
           >
-            {t.slogans[currentSlogan]}
+            ✨ {t.slogans[currentSlogan]}
+          </div>
+
+          {/* Personal Progress Preview */}
+          <div className="mt-8 bg-white/10 backdrop-blur-md rounded-2xl p-4 max-w-md mx-auto border border-white/20">
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="flex items-center gap-2">
+                <TreeDeciduous className="h-4 w-4 text-green-400" />
+                Your Forest: {progress.trees_planted || 0} trees
+              </span>
+              <span className="text-yellow-400">🌱 {progress.seed_points || 0} seeds</span>
+            </div>
+            <Progress value={tierProgress} className="h-2 bg-white/20" />
+            <p className="text-xs mt-2 text-white/70">
+              {nextTier ? `${nextTier - progress.trees_planted} more trees to next rank!` : '🏆 Max rank achieved!'}
+            </p>
           </div>
         </div>
         
-        <div className="absolute top-4 right-4 z-20 flex gap-2">
+        <div className="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end">
           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
           <Button 
             variant="secondary" 
             size="sm" 
             onClick={() => navigate('/profile')}
-            className="gap-2"
+            className="gap-2 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
           >
             <UserIcon className="h-4 w-4" />
             Profile
@@ -196,7 +230,7 @@ const Index = () => {
             variant="secondary" 
             size="sm" 
             onClick={signOut}
-            className="gap-2"
+            className="gap-2 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
           >
             <LogOut className="h-4 w-4" />
             Logout
