@@ -6,13 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Heart, ThumbsUp, MapPin, Globe, Sparkles, TrendingUp, Send, Trophy, MessageCircle } from "lucide-react";
+import { 
+  Heart, ThumbsUp, MapPin, Globe, Sparkles, TrendingUp, Send, Trophy, 
+  MessageCircle, Users, Target, Calendar, Plus, ChevronRight, Flame,
+  TreeDeciduous, Award, Loader2
+} from "lucide-react";
 import { useCommunityPosts } from "@/hooks/useCommunityPosts";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 import { usePostInteractions } from "@/hooks/usePostInteractions";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { useLocationCommunity } from "@/hooks/useLocationCommunity";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface CommunityWallProps {
   t: any;
@@ -23,78 +37,89 @@ const motivationalQuotes = [
   "Every tree makes a difference 🌳",
   "Be the change you wish to see 🌍",
   "Plant today, breathe tomorrow 💚",
-  "Together we can heal the Earth 🌿"
+  "Together we can heal the Earth 🌿",
+  "Your community needs you! 🤝",
+  "One tree at a time, we build forests! 🌲"
 ];
 
 const getBadgeInfo = (treesPlanted: number) => {
-  if (treesPlanted >= 50) return { icon: "🌍", name: "Earth Saver" };
-  if (treesPlanted >= 30) return { icon: "🌾", name: "Village Hero" };
-  if (treesPlanted >= 15) return { icon: "🌳", name: "Eco Guardian" };
-  if (treesPlanted >= 5) return { icon: "🌿", name: "Eco Explorer" };
-  return { icon: "🌱", name: "Green Starter" };
+  if (treesPlanted >= 100) return { icon: "🏆", name: "Legend", color: "bg-yellow-500" };
+  if (treesPlanted >= 50) return { icon: "🌍", name: "Earth Saver", color: "bg-blue-500" };
+  if (treesPlanted >= 30) return { icon: "🌾", name: "Village Hero", color: "bg-purple-500" };
+  if (treesPlanted >= 15) return { icon: "🌳", name: "Eco Guardian", color: "bg-green-500" };
+  if (treesPlanted >= 5) return { icon: "🌿", name: "Eco Explorer", color: "bg-teal-500" };
+  return { icon: "🌱", name: "Green Starter", color: "bg-emerald-500" };
 };
 
 export const CommunityWall = ({ t }: CommunityWallProps) => {
-  const { posts: communityPosts } = useCommunityPosts();
+  const { userLocation, loading: locationLoading } = useUserLocation();
+  const { 
+    locationStats, 
+    challenges, 
+    leaderboard, 
+    locationPosts,
+    allLocations,
+    loading: communityLoading,
+    createChallenge 
+  } = useLocationCommunity(userLocation.location);
   const { analytics } = useRealtimeAnalytics();
   
   const [newMessage, setNewMessage] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [selectedLocation, setSelectedLocation] = useState<string>("my-location");
   const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
-  const [topContributors, setTopContributors] = useState<any[]>([]);
-  const [locationsList, setLocationsList] = useState<string[]>([]);
+  const [showCreateChallenge, setShowCreateChallenge] = useState(false);
+  const [newChallengeTitle, setNewChallengeTitle] = useState("");
+  const [newChallengeTarget, setNewChallengeTarget] = useState(50);
+  const [globalPosts, setGlobalPosts] = useState<any[]>([]);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<any[]>([]);
 
-  // Fetch top contributors with real locations
+  // Fetch global data when "all" is selected
   useEffect(() => {
-    const fetchContributors = async () => {
-      const { data } = await supabase
+    const fetchGlobalData = async () => {
+      // Fetch all posts
+      const { data: posts } = await supabase
+        .from('community_posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (posts) setGlobalPosts(posts);
+
+      // Fetch global leaderboard
+      const { data: progress } = await supabase
         .from('user_progress')
         .select('user_id, trees_planted, seed_points')
         .order('trees_planted', { ascending: false })
-        .limit(5);
+        .limit(10);
 
-      if (!data) return;
+      if (progress) {
+        const userIds = progress.filter(p => p.trees_planted > 0).map(p => p.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, location')
+          .in('id', userIds);
 
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const userIds = data.filter(c => c.trees_planted > 0).map(c => c.user_id);
-      
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, location')
-        .in('id', userIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      
-      const contributors = data
-        .filter(c => c.trees_planted > 0)
-        .map(c => {
-          const profile = profileMap.get(c.user_id);
-          const badge = getBadgeInfo(c.trees_planted);
-          return {
-            id: c.user_id,
-            name: profile?.display_name || 'Community Member',
-            points: c.seed_points,
-            treesPlanted: c.trees_planted,
-            badge: badge.name,
-            badgeIcon: badge.icon,
-            location: profile?.location || 'Community',
-            isCurrentUser: c.user_id === currentUser?.id
-          };
-        });
-
-      setTopContributors(contributors);
-
-      // Extract unique locations
-      const locations = Array.from(new Set(contributors.map(c => c.location).filter(Boolean)));
-      setLocationsList(locations);
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        const leaderboardData = progress
+          .filter(p => p.trees_planted > 0)
+          .map(p => ({
+            user_id: p.user_id,
+            display_name: profileMap.get(p.user_id)?.display_name || 'Community Member',
+            location: profileMap.get(p.user_id)?.location || 'Unknown',
+            trees_planted: p.trees_planted,
+            seed_points: p.seed_points || 0
+          }));
+        setGlobalLeaderboard(leaderboardData);
+      }
     };
 
-    fetchContributors();
+    fetchGlobalData();
 
+    // Subscribe to changes
     const channel = supabase
-      .channel('progress-location-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_progress' }, fetchContributors)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchContributors)
+      .channel('global-community-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, fetchGlobalData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_progress' }, fetchGlobalData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -104,7 +129,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-    }, 60000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -129,6 +154,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
       user_id: user.id,
       content: newMessage,
       author_name: authorName,
+      location: profile?.location,
       likes: 0
     });
 
@@ -138,9 +164,36 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     }
 
     setNewMessage("");
-    toast.success("Post shared! +10 Green Points 🌱");
+    toast.success("Post shared with your community! +10 Green Points 🌱");
   };
 
+  const handleCreateChallenge = async () => {
+    if (!newChallengeTitle.trim() || !userLocation.location) return;
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30);
+
+    const { error } = await createChallenge(
+      userLocation.location,
+      newChallengeTitle,
+      `Community challenge for ${userLocation.location}`,
+      newChallengeTarget,
+      endDate
+    );
+
+    if (error) {
+      toast.error("Failed to create challenge");
+      return;
+    }
+
+    setShowCreateChallenge(false);
+    setNewChallengeTitle("");
+    toast.success("Challenge created for your community! 🎯");
+  };
+
+  const displayPosts = selectedLocation === "all" ? globalPosts : locationPosts;
+  const displayLeaderboard = selectedLocation === "all" ? globalLeaderboard : leaderboard;
+  
   const globalImpact = {
     totalTrees: analytics?.total_trees || 0,
     co2Saved: Math.round(analytics?.total_co2_kg || 0),
@@ -148,85 +201,250 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     areaExpanded: Math.round(analytics?.total_area_m2 || 0),
   };
 
-  // Group posts by location from contributors
-  const postsByLocation = communityPosts.reduce((acc: any, post) => {
-    const contributor = topContributors.find(c => c.name === post.author_name);
-    const location = contributor?.location || "Community";
-    if (!acc[location]) acc[location] = [];
-    acc[location].push(post);
-    return acc;
-  }, {});
+  const localImpact = locationStats ? {
+    totalTrees: locationStats.total_trees,
+    co2Saved: Math.round(locationStats.total_co2_kg),
+    o2Generated: Math.round(locationStats.total_o2_lpd),
+    totalUsers: locationStats.total_users
+  } : null;
 
-  const filteredPosts = selectedLocation === "all" 
-    ? communityPosts 
-    : postsByLocation[selectedLocation] || [];
-
-  const challengeTarget = 100;
-  const challengeCurrent = globalImpact.totalTrees;
-  const challengeProgress = Math.min((challengeCurrent / challengeTarget) * 100, 100);
+  if (locationLoading || communityLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading your community...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Motivational Banner */}
-      <Card className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-        <div className="flex items-center justify-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-          <p className="text-lg font-semibold text-foreground">{currentQuote}</p>
-          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-        </div>
-      </Card>
-
-      {/* Global Impact Counter - Real-time */}
-      <Card className="p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border-2 border-green-500/20">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-foreground">
-          <Globe className="h-6 w-6 text-primary animate-pulse" />
-          🌍 Global Community Impact (Live Updates)
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-card/50 rounded-xl border border-border">
-            <div className="text-3xl font-bold text-green-600 animate-pulse">{globalImpact.totalTrees}</div>
-            <div className="text-sm text-muted-foreground mt-1">Trees Planted</div>
+      {/* Location Header */}
+      <Card className="p-4 bg-gradient-to-r from-primary/20 to-secondary/20 border-primary/30">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary/20 rounded-full">
+              <MapPin className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">
+                {userLocation.location ? `Welcome, ${userLocation.displayName}!` : 'Community Hub'}
+              </h2>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                {userLocation.location ? (
+                  <>📍 {userLocation.location} Community</>
+                ) : (
+                  <>Update your profile to see your local community</>
+                )}
+              </p>
+            </div>
           </div>
-          <div className="text-center p-4 bg-card/50 rounded-xl border border-border">
-            <div className="text-3xl font-bold text-blue-600 animate-pulse">{globalImpact.co2Saved}kg</div>
-            <div className="text-sm text-muted-foreground mt-1">CO₂ Saved</div>
-          </div>
-          <div className="text-center p-4 bg-card/50 rounded-xl border border-border">
-            <div className="text-3xl font-bold text-cyan-600 animate-pulse">{globalImpact.o2Generated}L</div>
-            <div className="text-sm text-muted-foreground mt-1">O₂/Day</div>
-          </div>
-          <div className="text-center p-4 bg-card/50 rounded-xl border border-border">
-            <div className="text-3xl font-bold text-emerald-600 animate-pulse">{globalImpact.areaExpanded}m²</div>
-            <div className="text-sm text-muted-foreground mt-1">Green Area</div>
+          
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+            <p className="text-sm font-medium text-foreground">{currentQuote}</p>
           </div>
         </div>
       </Card>
 
-      {/* Community Challenge */}
-      <Card className="p-6 border-2 border-primary/30">
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy className="h-6 w-6 text-primary" />
-          <h3 className="text-lg font-bold text-foreground">Community Challenge</h3>
-        </div>
-        <p className="text-foreground mb-3">Plant {challengeTarget} trees together!</p>
-        <Progress value={challengeProgress} className="h-3 mb-2" />
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{challengeCurrent} / {challengeTarget} trees</span>
-          <span>{challengeCurrent >= challengeTarget ? '✓ Completed!' : `${challengeTarget - challengeCurrent} more to go`}</span>
+      {/* Location Filter */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            <span className="font-medium">View Community:</span>
+          </div>
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <SelectTrigger className="w-full sm:w-[250px]">
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my-location">
+                <span className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  My Location ({userLocation.location || 'Not set'})
+                </span>
+              </SelectItem>
+              <SelectItem value="all">
+                <span className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  All Communities (Global)
+                </span>
+              </SelectItem>
+              {allLocations.filter(loc => loc !== userLocation.location).map(loc => (
+                <SelectItem key={loc} value={loc}>📍 {loc}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
+
+      {/* Impact Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Local Impact */}
+        {selectedLocation !== "all" && localImpact && (
+          <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-2 border-green-500/30">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
+              <MapPin className="h-5 w-5 text-green-600" />
+              📍 {userLocation.location} Impact
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-3 bg-card/50 rounded-xl">
+                <div className="text-2xl font-bold text-green-600">{localImpact.totalTrees}</div>
+                <div className="text-xs text-muted-foreground">Trees</div>
+              </div>
+              <div className="text-center p-3 bg-card/50 rounded-xl">
+                <div className="text-2xl font-bold text-blue-600">{localImpact.totalUsers}</div>
+                <div className="text-xs text-muted-foreground">Members</div>
+              </div>
+              <div className="text-center p-3 bg-card/50 rounded-xl">
+                <div className="text-2xl font-bold text-cyan-600">{localImpact.co2Saved}kg</div>
+                <div className="text-xs text-muted-foreground">CO₂ Saved</div>
+              </div>
+              <div className="text-center p-3 bg-card/50 rounded-xl">
+                <div className="text-2xl font-bold text-emerald-600">{localImpact.o2Generated}L</div>
+                <div className="text-xs text-muted-foreground">O₂/Day</div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Global Impact */}
+        <Card className={`p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-500/30 ${selectedLocation === "all" || !localImpact ? 'md:col-span-2' : ''}`}>
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
+            <Globe className="h-5 w-5 text-blue-600 animate-pulse" />
+            🌍 Global Community Impact
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="text-center p-3 bg-card/50 rounded-xl">
+              <div className="text-2xl font-bold text-green-600">{globalImpact.totalTrees}</div>
+              <div className="text-xs text-muted-foreground">Total Trees</div>
+            </div>
+            <div className="text-center p-3 bg-card/50 rounded-xl">
+              <div className="text-2xl font-bold text-blue-600">{globalImpact.co2Saved}kg</div>
+              <div className="text-xs text-muted-foreground">CO₂ Saved</div>
+            </div>
+            <div className="text-center p-3 bg-card/50 rounded-xl">
+              <div className="text-2xl font-bold text-cyan-600">{globalImpact.o2Generated}L</div>
+              <div className="text-xs text-muted-foreground">O₂/Day</div>
+            </div>
+            <div className="text-center p-3 bg-card/50 rounded-xl">
+              <div className="text-2xl font-bold text-emerald-600">{globalImpact.areaExpanded}m²</div>
+              <div className="text-xs text-muted-foreground">Green Area</div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Community Challenges */}
+      {selectedLocation !== "all" && (
+        <Card className="p-6 border-2 border-primary/30">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Target className="h-6 w-6 text-primary" />
+              <h3 className="text-lg font-bold text-foreground">Community Challenges</h3>
+            </div>
+            <Dialog open={showCreateChallenge} onOpenChange={setShowCreateChallenge}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  New Challenge
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Community Challenge</DialogTitle>
+                  <DialogDescription>
+                    Start a new tree planting challenge for {userLocation.location}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="text-sm font-medium">Challenge Title</label>
+                    <Input
+                      placeholder="e.g., 100 Trees for Our Village"
+                      value={newChallengeTitle}
+                      onChange={(e) => setNewChallengeTitle(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Target Trees</label>
+                    <Input
+                      type="number"
+                      min={10}
+                      max={1000}
+                      value={newChallengeTarget}
+                      onChange={(e) => setNewChallengeTarget(parseInt(e.target.value) || 50)}
+                    />
+                  </div>
+                  <Button onClick={handleCreateChallenge} className="w-full">
+                    <Flame className="h-4 w-4 mr-2" />
+                    Create Challenge
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {challenges.length > 0 ? (
+            <div className="space-y-4">
+              {challenges.map((challenge) => {
+                const progress = Math.min((challenge.current_trees / challenge.target_trees) * 100, 100);
+                const daysLeft = Math.max(0, Math.ceil((new Date(challenge.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                
+                return (
+                  <Card key={challenge.id} className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-bold flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
+                        {challenge.title}
+                      </h4>
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {daysLeft} days left
+                      </Badge>
+                    </div>
+                    <Progress value={progress} className="h-3 mb-2" />
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">
+                        {challenge.current_trees} / {challenge.target_trees} trees
+                      </span>
+                      <span className="flex items-center gap-1 text-primary">
+                        <Users className="h-4 w-4" />
+                        {challenge.participants?.length || 0} participants
+                      </span>
+                    </div>
+                    {progress >= 100 && (
+                      <Badge className="mt-2 bg-green-500">✓ Challenge Completed!</Badge>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="p-6 text-center bg-muted/30">
+              <Target className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-muted-foreground">No active challenges in {userLocation.location}</p>
+              <p className="text-sm text-muted-foreground">Create one to rally your community!</p>
+            </Card>
+          )}
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-6">
           {/* Post Creation */}
           <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-primary">
-              {t.communityWall}
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+              <MessageCircle className="h-6 w-6" />
+              Share with {selectedLocation === "all" ? "Everyone" : userLocation.location}
             </h2>
             <div className="space-y-4">
               <Textarea 
-                placeholder="Share your plantation story... 🌱" 
+                placeholder={`Share your plantation story with ${selectedLocation === "all" ? "the global community" : `${userLocation.location} community`}... 🌱`}
                 value={newMessage} 
                 onChange={e => setNewMessage(e.target.value)} 
                 className="min-h-[100px]" 
@@ -238,80 +456,111 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
             </div>
           </Card>
 
-          {/* Location Filter */}
+          {/* Posts Feed */}
           <Card className="p-4">
-            <div className="flex items-center gap-4">
-              <MapPin className="h-5 w-5 text-primary" />
-              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Filter by location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">🌍 All Locations</SelectItem>
-                  {locationsList.map(loc => (
-                    <SelectItem key={loc} value={loc}>📍 {loc}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+              {selectedLocation === "all" ? (
+                <><Globe className="h-5 w-5 text-blue-500" /> Global Feed</>
+              ) : (
+                <><MapPin className="h-5 w-5 text-green-500" /> {userLocation.location} Feed</>
+              )}
+              <Badge variant="outline" className="ml-auto">{displayPosts.length} posts</Badge>
+            </h3>
           </Card>
 
-          {/* Location-Based Feed */}
           <ScrollArea className="h-[600px]">
             <div className="space-y-4 pr-4">
-              {selectedLocation !== "all" && (
-                <Card className="p-4 bg-primary/5 border-primary/30">
-                  <h3 className="font-bold text-primary flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Updates from {selectedLocation}
-                  </h3>
-                </Card>
-              )}
-              
-              {filteredPosts.length === 0 ? (
+              {displayPosts.length === 0 ? (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">No posts yet in this location. Be the first to share!</p>
+                  <TreeDeciduous className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
                 </Card>
               ) : (
-                filteredPosts.map((post: any) => <PostCard key={post.id} post={post} topContributors={topContributors} />)
+                displayPosts.map((post: any) => (
+                  <PostCard key={post.id} post={post} leaderboard={displayLeaderboard} />
+                ))
               )}
             </div>
           </ScrollArea>
         </div>
 
-        {/* Sidebar - Top Contributors */}
+        {/* Sidebar - Leaderboard */}
         <div className="space-y-6">
           <Card className="p-6">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Top Contributors
+              <Award className="h-5 w-5 text-yellow-500" />
+              {selectedLocation === "all" ? "Global" : userLocation.location} Leaders
             </h3>
-            <ScrollArea className="h-[400px]">
+            <ScrollArea className="h-[500px]">
               <div className="space-y-3">
-                {topContributors.map((contributor, idx) => (
-                  <Card key={contributor.id} className={`p-4 ${contributor.isCurrentUser ? 'border-primary/50 bg-primary/5' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : contributor.badgeIcon}</div>
-                      <div className="flex-1">
-                        <p className="font-semibold">{contributor.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {contributor.location}
-                        </p>
-                        <div className="flex gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            🌳 {contributor.treesPlanted}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            ⭐ {contributor.points}
+                {displayLeaderboard.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No contributors yet. Plant a tree to get on the leaderboard!
+                  </p>
+                ) : (
+                  displayLeaderboard.map((contributor, idx) => {
+                    const badge = getBadgeInfo(contributor.trees_planted);
+                    const isCurrentUser = contributor.user_id === userLocation.userId;
+                    
+                    return (
+                      <Card 
+                        key={contributor.user_id} 
+                        className={`p-4 transition-all ${isCurrentUser ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted/30'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`text-2xl w-10 h-10 rounded-full flex items-center justify-center ${idx < 3 ? 'bg-gradient-to-br from-yellow-200 to-yellow-400' : 'bg-muted'}`}>
+                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : badge.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate flex items-center gap-1">
+                              {contributor.display_name}
+                              {isCurrentUser && <Badge variant="secondary" className="text-xs ml-1">You</Badge>}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {contributor.location}
+                            </p>
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              <Badge variant="secondary" className="text-xs">
+                                🌳 {contributor.trees_planted}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                ⭐ {contributor.seed_points}
+                              </Badge>
+                            </div>
+                          </div>
+                          <Badge className={`${badge.color} text-white text-xs`}>
+                            #{idx + 1}
                           </Badge>
                         </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                      </Card>
+                    );
+                  })
+                )}
               </div>
             </ScrollArea>
+          </Card>
+
+          {/* Quick Stats */}
+          <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+            <h4 className="font-bold mb-3 flex items-center gap-2">
+              <Flame className="h-5 w-5 text-orange-500" />
+              Quick Stats
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Members</span>
+                <span className="font-bold">{displayLeaderboard.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Active Posts</span>
+                <span className="font-bold">{displayPosts.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Challenges</span>
+                <span className="font-bold">{challenges.length}</span>
+              </div>
+            </div>
           </Card>
         </div>
       </div>
@@ -319,9 +568,10 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   );
 };
 
-// Post Card Component with Likes and Comments
-const PostCard = ({ post, topContributors }: { post: any; topContributors: any[] }) => {
-  const contributor = topContributors.find(c => c.name === post.author_name);
+// Post Card Component
+const PostCard = ({ post, leaderboard }: { post: any; leaderboard: any[] }) => {
+  const contributor = leaderboard.find(c => c.display_name === post.author_name);
+  const badge = getBadgeInfo(contributor?.trees_planted || 0);
   const { likes, comments, hasLiked, likesCount, commentsCount, toggleLike, addComment } = usePostInteractions(post.id);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -333,29 +583,33 @@ const PostCard = ({ post, topContributors }: { post: any; topContributors: any[]
   };
 
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
+    <Card className="p-6 hover:shadow-lg transition-all border-l-4 border-l-primary/50">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xl">
-          {contributor?.badgeIcon || '🌱'}
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${badge.color}/20`}>
+          {badge.icon}
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="font-semibold">{post.author_name}</p>
-            <Badge variant="secondary">
-              {contributor?.badge || 'Green Starter'}
+            <Badge variant="secondary" className="text-xs">
+              {badge.name}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            {contributor?.location || 'Community'} · {new Date(post.created_at).toLocaleDateString()}
+            {post.location || contributor?.location || 'Community'} · {new Date(post.created_at).toLocaleDateString()}
           </p>
         </div>
       </div>
       
-      <p className="text-foreground mb-3">{post.content}</p>
+      <p className="text-foreground mb-3 leading-relaxed">{post.content}</p>
       
       {post.image_url && (
-        <img src={post.image_url} alt="Post" className="rounded-lg mb-3 w-full" />
+        <img 
+          src={post.image_url} 
+          alt="Post" 
+          className="rounded-lg mb-3 w-full max-h-[300px] object-cover" 
+        />
       )}
       
       <div className="flex gap-2 items-center border-t border-border pt-3">
@@ -363,7 +617,7 @@ const PostCard = ({ post, topContributors }: { post: any; topContributors: any[]
           variant={hasLiked ? "default" : "ghost"} 
           size="sm"
           onClick={toggleLike}
-          className={hasLiked ? "bg-primary" : ""}
+          className={hasLiked ? "bg-primary hover:bg-primary/90" : ""}
         >
           <ThumbsUp className={`h-4 w-4 mr-1 ${hasLiked ? 'fill-current' : ''}`} />
           {likesCount}

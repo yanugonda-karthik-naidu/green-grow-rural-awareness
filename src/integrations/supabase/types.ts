@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      community_challenges: {
+        Row: {
+          created_at: string
+          current_trees: number
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          location: string
+          participants: string[] | null
+          start_date: string
+          target_trees: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          current_trees?: number
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          location: string
+          participants?: string[] | null
+          start_date?: string
+          target_trees?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          current_trees?: number
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          location?: string
+          participants?: string[] | null
+          start_date?: string
+          target_trees?: number
+          title?: string
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           author_name: string
@@ -76,6 +118,7 @@ export type Database = {
           id: string
           image_url: string | null
           likes: number | null
+          location: string | null
           user_id: string
         }
         Insert: {
@@ -85,6 +128,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes?: number | null
+          location?: string | null
           user_id: string
         }
         Update: {
@@ -94,7 +138,38 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes?: number | null
+          location?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      location_stats: {
+        Row: {
+          id: string
+          last_updated: string
+          location: string
+          total_co2_kg: number
+          total_o2_lpd: number
+          total_trees: number
+          total_users: number
+        }
+        Insert: {
+          id?: string
+          last_updated?: string
+          location: string
+          total_co2_kg?: number
+          total_o2_lpd?: number
+          total_trees?: number
+          total_users?: number
+        }
+        Update: {
+          id?: string
+          last_updated?: string
+          location?: string
+          total_co2_kg?: number
+          total_o2_lpd?: number
+          total_trees?: number
+          total_users?: number
         }
         Relationships: []
       }
