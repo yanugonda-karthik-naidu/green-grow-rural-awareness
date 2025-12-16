@@ -53,6 +53,15 @@ const getBadgeInfo = (treesPlanted: number) => {
 
 export const CommunityWall = ({ t }: CommunityWallProps) => {
   const { userLocation, loading: locationLoading } = useUserLocation();
+  const [selectedLocation, setSelectedLocation] = useState<string>("my-location");
+  
+  // Determine the active location to fetch data for
+  const activeLocation = selectedLocation === "my-location" 
+    ? userLocation.location 
+    : selectedLocation === "all" 
+      ? null 
+      : selectedLocation;
+  
   const { 
     locationStats, 
     challenges, 
@@ -61,11 +70,10 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
     allLocations,
     loading: communityLoading,
     createChallenge 
-  } = useLocationCommunity(userLocation.location);
+  } = useLocationCommunity(activeLocation);
   const { analytics } = useRealtimeAnalytics();
   
   const [newMessage, setNewMessage] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState<string>("my-location");
   const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [newChallengeTitle, setNewChallengeTitle] = useState("");
@@ -168,15 +176,16 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
   };
 
   const handleCreateChallenge = async () => {
-    if (!newChallengeTitle.trim() || !userLocation.location) return;
+    const challengeLocation = activeLocation || userLocation.location;
+    if (!newChallengeTitle.trim() || !challengeLocation) return;
 
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30);
 
     const { error } = await createChallenge(
-      userLocation.location,
+      challengeLocation,
       newChallengeTitle,
-      `Community challenge for ${userLocation.location}`,
+      `Community challenge for ${challengeLocation}`,
       newChallengeTarget,
       endDate
     );
@@ -193,6 +202,13 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
 
   const displayPosts = selectedLocation === "all" ? globalPosts : locationPosts;
   const displayLeaderboard = selectedLocation === "all" ? globalLeaderboard : leaderboard;
+  
+  // Get the display name for the current selected location
+  const displayLocationName = selectedLocation === "my-location" 
+    ? userLocation.location 
+    : selectedLocation === "all" 
+      ? "Global" 
+      : selectedLocation;
   
   const globalImpact = {
     totalTrees: analytics?.total_trees || 0,
@@ -288,7 +304,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-2 border-green-500/30">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
               <MapPin className="h-5 w-5 text-green-600" />
-              📍 {userLocation.location} Impact
+              📍 {displayLocationName} Impact
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center p-3 bg-card/50 rounded-xl">
@@ -357,7 +373,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
                 <DialogHeader>
                   <DialogTitle>Create Community Challenge</DialogTitle>
                   <DialogDescription>
-                    Start a new tree planting challenge for {userLocation.location}
+                    Start a new tree planting challenge for {displayLocationName}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -426,7 +442,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           ) : (
             <Card className="p-6 text-center bg-muted/30">
               <Target className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground">No active challenges in {userLocation.location}</p>
+              <p className="text-muted-foreground">No active challenges in {displayLocationName}</p>
               <p className="text-sm text-muted-foreground">Create one to rally your community!</p>
             </Card>
           )}
@@ -440,11 +456,11 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           <Card className="p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
               <MessageCircle className="h-6 w-6" />
-              Share with {selectedLocation === "all" ? "Everyone" : userLocation.location}
+              Share with {selectedLocation === "all" ? "Everyone" : displayLocationName}
             </h2>
             <div className="space-y-4">
               <Textarea 
-                placeholder={`Share your plantation story with ${selectedLocation === "all" ? "the global community" : `${userLocation.location} community`}... 🌱`}
+                placeholder={`Share your plantation story with ${selectedLocation === "all" ? "the global community" : `${displayLocationName} community`}... 🌱`}
                 value={newMessage} 
                 onChange={e => setNewMessage(e.target.value)} 
                 className="min-h-[100px]" 
@@ -462,7 +478,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
               {selectedLocation === "all" ? (
                 <><Globe className="h-5 w-5 text-blue-500" /> Global Feed</>
               ) : (
-                <><MapPin className="h-5 w-5 text-green-500" /> {userLocation.location} Feed</>
+                <><MapPin className="h-5 w-5 text-green-500" /> {displayLocationName} Feed</>
               )}
               <Badge variant="outline" className="ml-auto">{displayPosts.length} posts</Badge>
             </h3>
@@ -489,7 +505,7 @@ export const CommunityWall = ({ t }: CommunityWallProps) => {
           <Card className="p-6">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
               <Award className="h-5 w-5 text-yellow-500" />
-              {selectedLocation === "all" ? "Global" : userLocation.location} Leaders
+              {selectedLocation === "all" ? "Global" : displayLocationName} Leaders
             </h3>
             <ScrollArea className="h-[500px]">
               <div className="space-y-3">
