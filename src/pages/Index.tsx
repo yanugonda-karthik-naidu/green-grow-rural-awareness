@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles } from "lucide-react";
-import { translations, Language } from "@/lib/translations";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
+import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
@@ -23,7 +24,6 @@ import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
 
 const Index = () => {
-  const [language, setLanguage] = useState<Language>('en');
   const [currentSlogan, setCurrentSlogan] = useState(0);
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
@@ -40,20 +40,61 @@ const Index = () => {
     refetch
   } = useUserProgress(user?.id);
 
+  // Translation
+  const { t, isTranslating, currentLanguage } = useAutoTranslate();
+  const { translate } = useTranslation();
+
+  // Slogans - will be translated
+  const [slogans, setSlogans] = useState([
+    "One tree at a time, we change the world",
+    "Plant today for a greener tomorrow",
+    "Every tree counts in our fight against climate change",
+    "Growing forests, growing hope"
+  ]);
+
+  // Translate slogans when language changes
+  useEffect(() => {
+    const translateSlogans = async () => {
+      if (currentLanguage === 'en') {
+        setSlogans([
+          "One tree at a time, we change the world",
+          "Plant today for a greener tomorrow",
+          "Every tree counts in our fight against climate change",
+          "Growing forests, growing hope"
+        ]);
+        return;
+      }
+      
+      const baseSlogans = [
+        "One tree at a time, we change the world",
+        "Plant today for a greener tomorrow",
+        "Every tree counts in our fight against climate change",
+        "Growing forests, growing hope"
+      ];
+      
+      try {
+        const translated = await Promise.all(baseSlogans.map(s => translate(s)));
+        setSlogans(translated);
+      } catch (error) {
+        console.error('Slogan translation error:', error);
+      }
+    };
+    
+    translateSlogans();
+  }, [currentLanguage, translate]);
+
   // Realtime updates
   useRealtimeProgress(() => {
     refetch();
   });
 
-  const t = translations[language];
-
   // Rotate slogans
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlogan((prev) => (prev + 1) % t.slogans.length);
+      setCurrentSlogan((prev) => (prev + 1) % slogans.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [t.slogans.length]);
+  }, [slogans.length]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -67,7 +108,7 @@ const Index = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-lg text-muted-foreground">Loading...</p>
+          <p className="text-lg text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
@@ -91,52 +132,43 @@ const Index = () => {
     const newTreesTotal = currentTrees + treesAdded;
     const currentBadgeNames = badges.map(b => b.badge_name);
     
-    if (newTreesTotal >= 1 && !currentBadgeNames.includes(t.badges.starter)) {
-      await addBadge(t.badges.starter);
+    const badgeNames = {
+      starter: "Eco Starter",
+      hero: "Eco Hero",
+      guardian: "Green Guardian",
+      maker: "Change Maker"
+    };
+    
+    if (newTreesTotal >= 1 && !currentBadgeNames.includes(badgeNames.starter)) {
+      await addBadge(badgeNames.starter);
       seedsEarned += 10;
-      await addAchievement(`Earned "${t.badges.starter}" badge`, 10);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      await addAchievement(`Earned "${badgeNames.starter}" badge`, 10);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
-    if (newTreesTotal >= 10 && !currentBadgeNames.includes(t.badges.hero)) {
-      await addBadge(t.badges.hero);
+    if (newTreesTotal >= 10 && !currentBadgeNames.includes(badgeNames.hero)) {
+      await addBadge(badgeNames.hero);
       seedsEarned += 25;
-      await addAchievement(`Earned "${t.badges.hero}" badge`, 25);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      await addAchievement(`Earned "${badgeNames.hero}" badge`, 25);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
-    if (newTreesTotal >= 50 && !currentBadgeNames.includes(t.badges.guardian)) {
-      await addBadge(t.badges.guardian);
+    if (newTreesTotal >= 50 && !currentBadgeNames.includes(badgeNames.guardian)) {
+      await addBadge(badgeNames.guardian);
       seedsEarned += 100;
-      await addAchievement(`Earned "${t.badges.guardian}" badge`, 100);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      await addAchievement(`Earned "${badgeNames.guardian}" badge`, 100);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
-    if (newTreesTotal >= 100 && !currentBadgeNames.includes(t.badges.maker)) {
-      await addBadge(t.badges.maker);
+    if (newTreesTotal >= 100 && !currentBadgeNames.includes(badgeNames.maker)) {
+      await addBadge(badgeNames.maker);
       seedsEarned += 200;
-      await addAchievement(`Earned "${t.badges.maker}" badge`, 200);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      await addAchievement(`Earned "${badgeNames.maker}" badge`, 200);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
 
     if (treesAdded > 0) {
       await addAchievement(`Planted ${treesAdded} tree${treesAdded > 1 ? 's' : ''}`, treesAdded * 5);
     }
 
-    // Update progress in database - map camelCase to snake_case
+    // Update progress in database
     await dbUpdateProgress({
       trees_planted: (progress.trees_planted || 0) + (newData.treesPlanted || 0),
       co2_reduced: (progress.co2_reduced || 0) + (newData.co2Reduced || 0),
@@ -152,11 +184,11 @@ const Index = () => {
   const navItems = [
     { id: 'plant', label: t.plantTree, icon: TreeDeciduous },
     { id: 'impact', label: t.impactCounter, icon: BarChart3 },
-    { id: 'achievements', label: 'Achievements', icon: Trophy },
+    { id: 'achievements', label: t.achievements, icon: Trophy },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
-    { id: 'games', label: 'Mini Games', icon: Gamepad2 },
+    { id: 'games', label: t.miniGames, icon: Gamepad2 },
     { id: 'voice', label: t.voiceAssistant, icon: Mic },
     { id: 'community', label: t.communityWall, icon: Users },
   ];
@@ -171,6 +203,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Translation loading indicator */}
+      {isTranslating && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-primary/90 text-primary-foreground py-1 text-center text-sm">
+          <Loader2 className="h-3 w-3 animate-spin inline mr-2" />
+          Translating...
+        </div>
+      )}
+
       {/* Hero Section with Animated Background */}
       <div 
         className="relative h-[500px] bg-cover bg-center flex items-center justify-center overflow-hidden"
@@ -182,7 +222,7 @@ const Index = () => {
         <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mb-6 animate-fade-in">
             <Leaf className="h-5 w-5 text-green-400" />
-            <span className="text-sm font-medium">Digital Plantation Platform</span>
+            <span className="text-sm font-medium">{t.digitalPlatform}</span>
             <Sparkles className="h-4 w-4 text-yellow-400" />
           </div>
           
@@ -196,7 +236,7 @@ const Index = () => {
           <div 
             className="text-lg md:text-xl font-semibold bg-gradient-to-r from-primary/90 to-secondary/90 backdrop-blur-sm px-8 py-4 rounded-full inline-block animate-pulse-soft shadow-2xl border border-white/20"
           >
-            ✨ {t.slogans[currentSlogan]}
+            ✨ {slogans[currentSlogan]}
           </div>
 
           {/* Personal Progress Preview */}
@@ -204,13 +244,13 @@ const Index = () => {
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="flex items-center gap-2">
                 <TreeDeciduous className="h-4 w-4 text-green-400" />
-                Your Forest: {progress.trees_planted || 0} trees
+                {t.yourForest}: {progress.trees_planted || 0} {t.trees}
               </span>
-              <span className="text-yellow-400">🌱 {progress.seed_points || 0} seeds</span>
+              <span className="text-yellow-400">🌱 {progress.seed_points || 0} {t.seeds}</span>
             </div>
             <Progress value={tierProgress} className="h-2 bg-white/20" />
             <p className="text-xs mt-2 text-white/70">
-              {nextTier ? `${nextTier - progress.trees_planted} more trees to next rank!` : '🏆 Max rank achieved!'}
+              {nextTier ? `${nextTier - progress.trees_planted} ${t.moreToNextRank}` : `🏆 ${t.maxRankAchieved}`}
             </p>
           </div>
         </div>
@@ -224,7 +264,7 @@ const Index = () => {
             className="gap-2 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
           >
             <UserIcon className="h-4 w-4" />
-            Profile
+            {t.profile}
           </Button>
           <Button 
             variant="secondary" 
@@ -233,7 +273,7 @@ const Index = () => {
             className="gap-2 bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            {t.logout}
           </Button>
         </div>
       </div>
@@ -256,7 +296,7 @@ const Index = () => {
 
           <TabsContent value="plant" className="space-y-6">
             <PlantTree 
-              language={language} 
+              language={currentLanguage} 
               onTreePlanted={updateProgress} 
               addPlantedTree={addPlantedTree}
               t={t} 
@@ -282,16 +322,16 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="library">
-            <TreeLibraryExpanded language={language} t={t} />
+            <TreeLibraryExpanded language={currentLanguage} t={t} />
           </TabsContent>
 
           <TabsContent value="learn">
-            <LearnSection language={language} t={t} />
+            <LearnSection language={currentLanguage} t={t} />
           </TabsContent>
 
           <TabsContent value="quiz">
             <Quiz 
-              language={language} 
+              language={currentLanguage} 
               t={t} 
               onQuizComplete={(score) => {
                 if (score >= 2) {
@@ -309,7 +349,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="voice">
-            <VoiceAssistant language={language} t={t} />
+            <VoiceAssistant language={currentLanguage} t={t} />
           </TabsContent>
 
           <TabsContent value="community">

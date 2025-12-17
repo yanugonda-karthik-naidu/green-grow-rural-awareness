@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, MicOff, Volume2, Send, Sparkles, Image, X, Camera, Leaf, TreeDeciduous, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Language } from "@/lib/translations";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +15,7 @@ interface Message {
 }
 
 interface VoiceAssistantProps {
-  language: Language;
+  language: string;
   t: any;
   context?: string;
 }
