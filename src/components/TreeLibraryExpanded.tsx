@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Language } from "@/lib/translations";
 import { TreeInfo } from "@/lib/treeData";
 import { expandedTreeData } from "@/lib/expandedTreeData";
 import { Volume2, TreeDeciduous, Search, Filter } from "lucide-react";
@@ -10,7 +9,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TreeLibraryExpandedProps {
-  language: Language;
+  language: string;
   t: any;
 }
 
