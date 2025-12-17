@@ -216,7 +216,7 @@ const Index = () => {
         </div>
         
         <div className="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end">
-          <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+          <LanguageSwitcher />
           <Button 
             variant="secondary" 
             size="sm" 
