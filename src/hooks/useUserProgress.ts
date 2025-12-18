@@ -17,6 +17,7 @@ export interface UserProgress {
 
 export interface PlantedTree {
   id: string;
+  user_id: string;
   tree_name: string;
   planted_date: string;
   stage: number;
