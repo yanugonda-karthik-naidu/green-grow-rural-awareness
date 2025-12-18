@@ -334,10 +334,30 @@ const Index = () => {
             <Quiz 
               language={currentLanguage} 
               t={t} 
-              onQuizComplete={(score) => {
-                if (score >= 2) {
-                  updateProgress({ treesPlanted: 1, co2Reduced: 5, oxygenGenerated: 50, wildlifeSheltered: 1 });
+              onQuizComplete={async (score) => {
+                // Calculate seeds based on quiz score
+                const seedsEarned = Math.max(5, Math.floor(score * 2)); // Minimum 5 seeds, 2 seeds per point
+                
+                // Update database with seeds
+                await dbUpdateProgress({ 
+                  seed_points: (progress.seed_points || 0) + seedsEarned 
+                });
+                
+                // Log achievement
+                await addAchievement(`Quiz completed with score ${score}`, seedsEarned);
+                
+                // Bonus: if high score, also count as tree planting
+                if (score >= 25) {
+                  await updateProgress({ treesPlanted: 1, co2Reduced: 5, oxygenGenerated: 50, wildlifeSheltered: 1 });
                 }
+                
+                // Trigger confetti for good scores
+                if (score >= 15) {
+                  confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+                }
+                
+                // Refresh data
+                await refetch();
               }}
             />
           </TabsContent>
@@ -345,7 +365,20 @@ const Index = () => {
           <TabsContent value="games">
             <MiniGamesExpanded 
               progress={progress} 
-              onProgressUpdate={(update) => dbUpdateProgress({ seed_points: (progress.seed_points || 0) + update.seedPoints })}
+              onProgressUpdate={async (update) => {
+                // Update seeds in database
+                await dbUpdateProgress({ 
+                  seed_points: (progress.seed_points || 0) + update.seedPoints 
+                });
+                
+                // Log achievement for game completion
+                if (update.seedPoints > 0) {
+                  await addAchievement(`Earned ${update.seedPoints} seeds from mini-game`, update.seedPoints);
+                }
+                
+                // Refresh data
+                await refetch();
+              }}
             />
           </TabsContent>
 
