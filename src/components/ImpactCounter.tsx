@@ -358,9 +358,9 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                 
                 // Get tree image with proper fallback
                 const getTreeImage = () => {
-                  // First try user uploaded image
+                  // First try user uploaded image (image_path is already a full URL)
                   if (tree.image_path) {
-                    return `https://zxbnkivvrrfpzwfcfidk.supabase.co/storage/v1/object/public/plant-images/${tree.image_path}`;
+                    return tree.image_path;
                   }
                   // Then try tree info image
                   if (treeInfo?.image) {
