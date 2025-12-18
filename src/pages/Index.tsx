@@ -308,6 +308,7 @@ const Index = () => {
               plantedTrees={plantedTrees}
               achievements={achievements}
               t={t} 
+              onRefresh={refetch}
             />
           </TabsContent>
 

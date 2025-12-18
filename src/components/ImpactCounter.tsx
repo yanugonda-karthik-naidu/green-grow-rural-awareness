@@ -1,21 +1,30 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Leaf, Droplets, Wind, Sun, Calendar, Zap, TreeDeciduous, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Leaf, Droplets, Wind, Sun, Calendar, Zap, TreeDeciduous, Sparkles, Pencil, Trash2, ZoomIn } from "lucide-react";
 import { PlantedTree, Achievement } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
 import { expandedTreeData } from "@/lib/expandedTreeData";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { TreeImageLightbox } from "./TreeImageLightbox";
+import { TreeEditDialog } from "./TreeEditDialog";
+import { TreeDeleteDialog } from "./TreeDeleteDialog";
 
 interface ImpactCounterProps {
   plantedTrees: PlantedTree[];
   achievements: Achievement[];
   t: any;
+  onRefresh?: () => void;
 }
 
-export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterProps) => {
+export const ImpactCounter = ({ plantedTrees, achievements, t, onRefresh }: ImpactCounterProps) => {
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
+  const [editingTree, setEditingTree] = useState<PlantedTree | null>(null);
+  const [deletingTree, setDeletingTree] = useState<PlantedTree | null>(null);
   // Calculate total impact metrics from planted trees
   const totalCO2Reduced = plantedTrees.reduce((sum, tree) => sum + (tree.impact_co2_kg || 25), 0);
   const totalO2Generated = plantedTrees.reduce((sum, tree) => sum + (tree.impact_o2_l_per_day || 260), 0);
@@ -370,19 +379,23 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                   return "/placeholder.svg";
                 };
 
+                const imageUrl = getTreeImage();
+
                 return (
                   <Card
                     key={tree.id}
-                    className="overflow-hidden border-2 border-muted hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer group"
+                    className="overflow-hidden border-2 border-muted hover:border-primary/50 transition-all duration-300 hover:shadow-lg group"
                   >
-                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950">
+                    <div 
+                      className="relative h-48 overflow-hidden bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 cursor-pointer"
+                      onClick={() => setLightboxImage({ url: imageUrl, name: tree.tree_name })}
+                    >
                       <img
-                        src={getTreeImage()}
+                        src={imageUrl}
                         alt={tree.tree_name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          // Try treeInfo image as fallback
                           if (treeInfo?.image && target.src !== treeInfo.image) {
                             target.src = treeInfo.image;
                           } else {
@@ -391,6 +404,14 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      
+                      {/* Zoom indicator */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-black/50 rounded-full p-2">
+                          <ZoomIn className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+                      
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <h3 className="text-white font-semibold text-lg">
                           {tree.tree_name}
@@ -407,13 +428,41 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
                       </div>
                     )}
                     
-                    {tree.location && (
-                      <div className="px-3 pb-3">
+                    <div className="p-3 border-t border-border flex items-center justify-between">
+                      {tree.location ? (
                         <Badge variant="secondary" className="text-xs">
                           📍 {tree.location}
                         </Badge>
+                      ) : (
+                        <span />
+                      )}
+                      
+                      {/* Edit/Delete buttons */}
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTree(tree);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingTree(tree);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </Card>
                 );
               })}
@@ -421,6 +470,30 @@ export const ImpactCounter = ({ plantedTrees, achievements, t }: ImpactCounterPr
           )}
         </CardContent>
       </Card>
+
+      {/* Lightbox Modal */}
+      <TreeImageLightbox
+        isOpen={!!lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        imageUrl={lightboxImage?.url || ""}
+        treeName={lightboxImage?.name || ""}
+      />
+
+      {/* Edit Dialog */}
+      <TreeEditDialog
+        isOpen={!!editingTree}
+        onClose={() => setEditingTree(null)}
+        tree={editingTree}
+        onUpdate={() => onRefresh?.()}
+      />
+
+      {/* Delete Dialog */}
+      <TreeDeleteDialog
+        isOpen={!!deletingTree}
+        onClose={() => setDeletingTree(null)}
+        tree={deletingTree}
+        onDelete={() => onRefresh?.()}
+      />
     </div>
   );
 };
