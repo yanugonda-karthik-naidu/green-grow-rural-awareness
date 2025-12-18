@@ -144,15 +144,35 @@ export const useUserProgress = (userId: string | undefined) => {
     if (!userId) return;
 
     try {
+      // For seed_points, if updates.seed_points is provided as an absolute value, use it
+      // Otherwise, add to existing. Check if it's meant to be absolute (when coming from games/quiz)
+      const newSeedPoints = updates.seed_points !== undefined 
+        ? updates.seed_points  // Use absolute value when explicitly set
+        : (progress?.seed_points || 0);
+
       const newProgress = {
-        trees_planted: (progress?.trees_planted || 0) + (updates.trees_planted || 0),
-        co2_reduced: (progress?.co2_reduced || 0) + (updates.co2_reduced || 0),
-        oxygen_generated: (progress?.oxygen_generated || 0) + (updates.oxygen_generated || 0),
-        wildlife_sheltered: (progress?.wildlife_sheltered || 0) + (updates.wildlife_sheltered || 0),
-        water_saved: (progress?.water_saved || 0) + (updates.water_saved || 0),
-        green_area_expanded: (progress?.green_area_expanded || 0) + (updates.green_area_expanded || 0),
-        energy_saved: (progress?.energy_saved || 0) + (updates.energy_saved || 0),
-        seed_points: (progress?.seed_points || 0) + (updates.seed_points || 0),
+        trees_planted: updates.trees_planted !== undefined 
+          ? updates.trees_planted 
+          : (progress?.trees_planted || 0),
+        co2_reduced: updates.co2_reduced !== undefined 
+          ? updates.co2_reduced 
+          : (progress?.co2_reduced || 0),
+        oxygen_generated: updates.oxygen_generated !== undefined 
+          ? updates.oxygen_generated 
+          : (progress?.oxygen_generated || 0),
+        wildlife_sheltered: updates.wildlife_sheltered !== undefined 
+          ? updates.wildlife_sheltered 
+          : (progress?.wildlife_sheltered || 0),
+        water_saved: updates.water_saved !== undefined 
+          ? updates.water_saved 
+          : (progress?.water_saved || 0),
+        green_area_expanded: updates.green_area_expanded !== undefined 
+          ? updates.green_area_expanded 
+          : (progress?.green_area_expanded || 0),
+        energy_saved: updates.energy_saved !== undefined 
+          ? updates.energy_saved 
+          : (progress?.energy_saved || 0),
+        seed_points: newSeedPoints,
       };
 
       const { error } = await supabase
@@ -162,6 +182,10 @@ export const useUserProgress = (userId: string | undefined) => {
 
       if (error) throw error;
 
+      // Update local state immediately for faster UI feedback
+      setProgress(prev => prev ? { ...prev, ...newProgress } : null);
+      
+      // Then fetch fresh data
       await fetchProgress();
     } catch (error: any) {
       console.error('Error updating progress:', error);
