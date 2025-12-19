@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
@@ -20,11 +20,20 @@ import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall as CommunityWallUpdated } from "@/components/CommunityWallUpdated";
 import { LearnSection } from "@/components/LearnSection";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { Leaderboard } from "@/components/Leaderboard";
+import { DailyChallenges } from "@/components/DailyChallenges";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
 
 const Index = () => {
   const [currentSlogan, setCurrentSlogan] = useState(0);
+  const [userStats, setUserStats] = useState({
+    treesToday: 0,
+    quizScoreToday: 0,
+    gamesPlayedToday: 0,
+    treesThisWeek: 0,
+    quizzesThisWeek: 0
+  });
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { 
@@ -121,6 +130,15 @@ const Index = () => {
   const updateProgress = async (newData: Partial<{ treesPlanted?: number; co2Reduced?: number; oxygenGenerated?: number; wildlifeSheltered?: number; waterSaved?: number; greenAreaExpanded?: number; energySaved?: number }>) => {
     const treesAdded = newData.treesPlanted || 0;
     
+    // Update user stats for challenges
+    if (treesAdded > 0) {
+      setUserStats(prev => ({
+        ...prev,
+        treesToday: prev.treesToday + treesAdded,
+        treesThisWeek: prev.treesThisWeek + treesAdded
+      }));
+    }
+    
     // Calculate seed rewards
     let seedsEarned = 0;
     if (treesAdded > 0) {
@@ -185,6 +203,7 @@ const Index = () => {
     { id: 'plant', label: t.plantTree, icon: TreeDeciduous },
     { id: 'impact', label: t.impactCounter, icon: BarChart3 },
     { id: 'achievements', label: t.achievements, icon: Trophy },
+    { id: 'challenges', label: 'Challenges', icon: Flame },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
@@ -281,7 +300,7 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-2 h-auto p-2 bg-card">
+          <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-10 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
@@ -322,6 +341,22 @@ const Index = () => {
             />
           </TabsContent>
 
+          <TabsContent value="challenges">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyChallenges 
+                userId={user?.id}
+                userStats={userStats}
+                onClaimReward={async (seeds) => {
+                  await dbUpdateProgress({ 
+                    seed_points: (progress.seed_points || 0) + seeds 
+                  });
+                  await refetch();
+                }}
+              />
+              <Leaderboard currentUserId={user?.id} />
+            </div>
+          </TabsContent>
+
           <TabsContent value="library">
             <TreeLibraryExpanded language={currentLanguage} t={t} />
           </TabsContent>
@@ -337,6 +372,13 @@ const Index = () => {
               onQuizComplete={async (score) => {
                 // Calculate seeds based on quiz score
                 const seedsEarned = Math.max(5, Math.floor(score * 2)); // Minimum 5 seeds, 2 seeds per point
+                
+                // Update user stats for challenges
+                setUserStats(prev => ({
+                  ...prev,
+                  quizScoreToday: Math.max(prev.quizScoreToday, score),
+                  quizzesThisWeek: prev.quizzesThisWeek + 1
+                }));
                 
                 // Update database with seeds
                 await dbUpdateProgress({ 
@@ -366,6 +408,12 @@ const Index = () => {
             <MiniGamesExpanded 
               progress={progress} 
               onProgressUpdate={async (update) => {
+                // Update user stats for challenges
+                setUserStats(prev => ({
+                  ...prev,
+                  gamesPlayedToday: prev.gamesPlayedToday + 1
+                }));
+                
                 // Update seeds in database
                 await dbUpdateProgress({ 
                   seed_points: (progress.seed_points || 0) + update.seedPoints 

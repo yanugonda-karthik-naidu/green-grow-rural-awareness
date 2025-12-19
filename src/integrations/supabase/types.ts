@@ -143,6 +143,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          metric: string
+          seed_reward: number
+          start_date: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          seed_reward?: number
+          start_date?: string
+          target_value?: number
+          title: string
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          seed_reward?: number
+          start_date?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: []
+      }
       location_stats: {
         Row: {
           id: string
@@ -377,6 +419,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_challenge_completions: {
+        Row: {
+          challenge_id: string
+          completed_at: string
+          id: string
+          seeds_earned: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string
+          id?: string
+          seeds_earned?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string
+          id?: string
+          seeds_earned?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_completions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_progress: {
         Row: {
