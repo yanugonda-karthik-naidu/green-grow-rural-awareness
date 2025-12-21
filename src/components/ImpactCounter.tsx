@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Leaf, Droplets, Wind, Sun, Calendar, Zap, TreeDeciduous, Sparkles, Pencil, Trash2, ZoomIn } from "lucide-react";
+import { Leaf, Droplets, Wind, Sun, Calendar, Zap, TreeDeciduous, Sparkles, Pencil, Trash2, ZoomIn, Plus } from "lucide-react";
 import { PlantedTree, Achievement } from "@/hooks/useUserProgress";
 import { treeData } from "@/lib/treeData";
 import { expandedTreeData } from "@/lib/expandedTreeData";
@@ -13,6 +13,68 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { TreeImageLightbox } from "./TreeImageLightbox";
 import { TreeEditDialog } from "./TreeEditDialog";
 import { TreeDeleteDialog } from "./TreeDeleteDialog";
+
+// Import tree images for virtual forest
+import acaciaImg from "@/assets/trees/acacia.jpg";
+import almondImg from "@/assets/trees/almond.jpg";
+import amlaImg from "@/assets/trees/amla.jpg";
+import apricotImg from "@/assets/trees/apricot.jpg";
+import ashImg from "@/assets/trees/ash.jpg";
+import avocadoImg from "@/assets/trees/avocado.jpg";
+import bambooImg from "@/assets/trees/bamboo.jpg";
+import banyanImg from "@/assets/trees/banyan.jpg";
+import birchImg from "@/assets/trees/birch.jpg";
+import cedarImg from "@/assets/trees/cedar.jpg";
+import cherryImg from "@/assets/trees/cherry.jpg";
+import coconutImg from "@/assets/trees/coconut.jpg";
+import cypressImg from "@/assets/trees/cypress.jpg";
+import eucalyptusImg from "@/assets/trees/eucalyptus.jpg";
+import figImg from "@/assets/trees/fig.jpg";
+import guavaImg from "@/assets/trees/guava.jpg";
+import mapleImg from "@/assets/trees/maple.jpg";
+import mangoImg from "@/assets/trees/mango.jpg";
+import neemImg from "@/assets/trees/neem.jpg";
+import oakImg from "@/assets/trees/oak.jpg";
+import oliveImg from "@/assets/trees/olive.jpg";
+import orangeImg from "@/assets/trees/orange.jpg";
+import palmImg from "@/assets/trees/palm.jpg";
+import pineImg from "@/assets/trees/pine.jpg";
+import redwoodImg from "@/assets/trees/redwood.jpg";
+import willowImg from "@/assets/trees/willow.jpg";
+import teakImg from "@/assets/trees/teak.jpg";
+import walnutImg from "@/assets/trees/walnut.jpg";
+
+// Sample virtual forest trees to display when user has few trees
+const virtualForestTrees = [
+  { id: 'v1', name: 'Acacia', image: acaciaImg, co2: 22, o2: 240 },
+  { id: 'v2', name: 'Almond', image: almondImg, co2: 18, o2: 200 },
+  { id: 'v3', name: 'Amla', image: amlaImg, co2: 20, o2: 220 },
+  { id: 'v4', name: 'Apricot', image: apricotImg, co2: 15, o2: 180 },
+  { id: 'v5', name: 'Ash', image: ashImg, co2: 28, o2: 280 },
+  { id: 'v6', name: 'Avocado', image: avocadoImg, co2: 24, o2: 260 },
+  { id: 'v7', name: 'Bamboo', image: bambooImg, co2: 35, o2: 350 },
+  { id: 'v8', name: 'Banyan', image: banyanImg, co2: 45, o2: 400 },
+  { id: 'v9', name: 'Birch', image: birchImg, co2: 20, o2: 220 },
+  { id: 'v10', name: 'Cedar', image: cedarImg, co2: 30, o2: 300 },
+  { id: 'v11', name: 'Cherry', image: cherryImg, co2: 18, o2: 190 },
+  { id: 'v12', name: 'Coconut', image: coconutImg, co2: 25, o2: 270 },
+  { id: 'v13', name: 'Cypress', image: cypressImg, co2: 22, o2: 240 },
+  { id: 'v14', name: 'Eucalyptus', image: eucalyptusImg, co2: 32, o2: 320 },
+  { id: 'v15', name: 'Fig', image: figImg, co2: 20, o2: 220 },
+  { id: 'v16', name: 'Guava', image: guavaImg, co2: 18, o2: 200 },
+  { id: 'v17', name: 'Maple', image: mapleImg, co2: 25, o2: 260 },
+  { id: 'v18', name: 'Mango', image: mangoImg, co2: 28, o2: 280 },
+  { id: 'v19', name: 'Neem', image: neemImg, co2: 35, o2: 350 },
+  { id: 'v20', name: 'Oak', image: oakImg, co2: 40, o2: 380 },
+  { id: 'v21', name: 'Olive', image: oliveImg, co2: 22, o2: 240 },
+  { id: 'v22', name: 'Orange', image: orangeImg, co2: 20, o2: 220 },
+  { id: 'v23', name: 'Palm', image: palmImg, co2: 25, o2: 270 },
+  { id: 'v24', name: 'Pine', image: pineImg, co2: 28, o2: 290 },
+  { id: 'v25', name: 'Redwood', image: redwoodImg, co2: 50, o2: 450 },
+  { id: 'v26', name: 'Willow', image: willowImg, co2: 22, o2: 240 },
+  { id: 'v27', name: 'Teak', image: teakImg, co2: 30, o2: 300 },
+  { id: 'v28', name: 'Walnut', image: walnutImg, co2: 26, o2: 270 },
+];
 
 interface ImpactCounterProps {
   plantedTrees: PlantedTree[];
@@ -344,6 +406,51 @@ export const ImpactCounter = ({ plantedTrees, achievements, t, onRefresh }: Impa
         </Card>
       )}
 
+      {/* Virtual Forest Display - Show sample trees */}
+      <Card className="border-2 border-teal-500/20">
+        <CardHeader className="bg-gradient-to-r from-teal-500/10 to-green-500/10">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TreeDeciduous className="h-6 w-6 text-teal-600" />
+              Virtual Forest Gallery
+            </div>
+            <Badge variant="secondary" className="text-sm">
+              {virtualForestTrees.length} Tree Species
+            </Badge>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Explore the diverse trees that make up our global forest</p>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {virtualForestTrees.map((tree) => (
+              <Card
+                key={tree.id}
+                className="overflow-hidden border hover:border-teal-500/50 transition-all duration-300 hover:shadow-lg cursor-pointer group"
+                onClick={() => setLightboxImage({ url: tree.image, name: tree.name })}
+              >
+                <div className="relative aspect-square overflow-hidden">
+                  <img
+                    src={tree.image}
+                    alt={tree.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="text-white text-xs font-semibold truncate">{tree.name}</p>
+                    <p className="text-white/70 text-[10px]">{tree.co2}kg CO₂/yr</p>
+                  </div>
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-black/50 rounded-full p-1">
+                      <ZoomIn className="h-3 w-3 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Planted Trees Gallery */}
       <Card className="border-2 border-primary/20">
         <CardHeader>
@@ -355,7 +462,9 @@ export const ImpactCounter = ({ plantedTrees, achievements, t, onRefresh }: Impa
         <CardContent>
           {plantedTrees.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">{t.noTreesYet}</p>
+              <TreeDeciduous className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground mb-2">{t.noTreesYet}</p>
+              <p className="text-sm text-muted-foreground">Start planting trees to build your personal forest!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
