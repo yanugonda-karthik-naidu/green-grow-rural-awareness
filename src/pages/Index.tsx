@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
@@ -22,11 +22,8 @@ import { LearnSection } from "@/components/LearnSection";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Leaderboard } from "@/components/Leaderboard";
 import { DailyChallenges } from "@/components/DailyChallenges";
-import { RewardsShop } from "@/components/RewardsShop";
-import { useNotifications } from "@/components/NotificationSystem";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
-import { toast } from "sonner";
 
 const Index = () => {
   const [currentSlogan, setCurrentSlogan] = useState(0);
@@ -37,9 +34,6 @@ const Index = () => {
     treesThisWeek: 0,
     quizzesThisWeek: 0
   });
-  const [purchasedItems, setPurchasedItems] = useState<string[]>([]);
-  const [challengeStreak, setChallengeStreak] = useState(0);
-  const previousRankRef = useRef<number | null>(null);
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { 
@@ -54,9 +48,6 @@ const Index = () => {
     addAchievement,
     refetch
   } = useUserProgress(user?.id);
-
-  // Notifications hook
-  const { notifyLeaderboardPosition, notifyChallengeStreak, notifyBadgeEarned, notifyRewardPurchase } = useNotifications();
 
   // Translation
   const { t, isTranslating, currentLanguage } = useAutoTranslate();
@@ -213,7 +204,6 @@ const Index = () => {
     { id: 'impact', label: t.impactCounter, icon: BarChart3 },
     { id: 'achievements', label: t.achievements, icon: Trophy },
     { id: 'challenges', label: 'Challenges', icon: Flame },
-    { id: 'shop', label: 'Rewards', icon: ShoppingBag },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
@@ -221,22 +211,6 @@ const Index = () => {
     { id: 'voice', label: t.voiceAssistant, icon: Mic },
     { id: 'community', label: t.communityWall, icon: Users },
   ];
-
-  // Handle shop purchase
-  const handleShopPurchase = async (itemId: string, cost: number) => {
-    if ((progress?.seed_points || 0) < cost) {
-      toast.error("Not enough seeds!");
-      return;
-    }
-    
-    await dbUpdateProgress({ 
-      seed_points: (progress?.seed_points || 0) - cost 
-    });
-    
-    setPurchasedItems(prev => [...prev, itemId]);
-    notifyRewardPurchase(itemId, cost);
-    await refetch();
-  };
 
   const nextTier = progress.trees_planted >= 100 ? null : 
     progress.trees_planted >= 50 ? 100 :
@@ -373,11 +347,6 @@ const Index = () => {
                 userId={user?.id}
                 userStats={userStats}
                 onClaimReward={async (seeds) => {
-                  // Track streak
-                  const newStreak = challengeStreak + 1;
-                  setChallengeStreak(newStreak);
-                  notifyChallengeStreak(newStreak);
-                  
                   await dbUpdateProgress({ 
                     seed_points: (progress.seed_points || 0) + seeds 
                   });
@@ -386,14 +355,6 @@ const Index = () => {
               />
               <Leaderboard currentUserId={user?.id} />
             </div>
-          </TabsContent>
-
-          <TabsContent value="shop">
-            <RewardsShop 
-              seedPoints={progress?.seed_points || 0}
-              purchasedItems={purchasedItems}
-              onPurchase={handleShopPurchase}
-            />
           </TabsContent>
 
           <TabsContent value="library">
@@ -407,7 +368,7 @@ const Index = () => {
           <TabsContent value="quiz">
             <Quiz 
               language={currentLanguage} 
-              t={t}
+              t={t} 
               onQuizComplete={async (score) => {
                 // Calculate seeds based on quiz score
                 const seedsEarned = Math.max(5, Math.floor(score * 2)); // Minimum 5 seeds, 2 seeds per point
