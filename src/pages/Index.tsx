@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useNotifications } from "@/hooks/useNotifications";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
@@ -22,6 +23,8 @@ import { LearnSection } from "@/components/LearnSection";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Leaderboard } from "@/components/Leaderboard";
 import { DailyChallenges } from "@/components/DailyChallenges";
+import { RewardsShop } from "@/components/RewardsShop";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
 
@@ -52,6 +55,9 @@ const Index = () => {
   // Translation
   const { t, isTranslating, currentLanguage } = useAutoTranslate();
   const { translate } = useTranslation();
+  
+  // Notifications
+  const { addNotification, checkLeaderboardAchievement, checkStreakAchievement, unreadCount } = useNotifications(user?.id);
 
   // Slogans - will be translated
   const [slogans, setSlogans] = useState([
@@ -204,6 +210,8 @@ const Index = () => {
     { id: 'impact', label: t.impactCounter, icon: BarChart3 },
     { id: 'achievements', label: t.achievements, icon: Trophy },
     { id: 'challenges', label: 'Challenges', icon: Flame },
+    { id: 'shop', label: 'Shop', icon: ShoppingBag },
+    { id: 'notifications', label: 'Alerts', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
@@ -300,15 +308,20 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-10 gap-2 h-auto p-2 bg-card">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
                 value={item.id}
-                className="flex flex-col items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="flex flex-col items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
               >
                 <item.icon className="h-5 w-5" />
                 <span className="text-xs md:text-sm">{item.label}</span>
+                {'badge' in item && item.badge && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -350,11 +363,46 @@ const Index = () => {
                   await dbUpdateProgress({ 
                     seed_points: (progress.seed_points || 0) + seeds 
                   });
+                  
+                  // Check for streak achievements
+                  await checkStreakAchievement(userStats.treesToday);
+                  
+                  // Add notification for reward claim
+                  await addNotification(
+                    '🎉 Challenge Completed!',
+                    `You earned ${seeds} seeds from completing a challenge!`,
+                    'achievement'
+                  );
+                  
                   await refetch();
                 }}
               />
-              <Leaderboard currentUserId={user?.id} />
+              <Leaderboard 
+                currentUserId={user?.id}
+                onRankChange={async (rank, category) => {
+                  await checkLeaderboardAchievement(rank, category);
+                }}
+              />
             </div>
+          </TabsContent>
+
+          <TabsContent value="shop">
+            <RewardsShop 
+              userId={user?.id}
+              seedPoints={progress.seed_points || 0}
+              onPurchase={async (newBalance) => {
+                await addNotification(
+                  '🛒 Purchase Complete!',
+                  'Your item has been unlocked. Check your profile to see it!',
+                  'reward'
+                );
+                await refetch();
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationsPanel userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="library">
