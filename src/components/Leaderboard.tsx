@@ -16,12 +16,14 @@ interface LeaderboardEntry {
 
 interface LeaderboardProps {
   currentUserId?: string;
+  onRankChange?: (rank: number, category: string) => void;
 }
 
-export const Leaderboard = ({ currentUserId }: LeaderboardProps) => {
+export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) => {
   const [seedLeaderboard, setSeedLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [treeLeaderboard, setTreeLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previousRanks, setPreviousRanks] = useState<{ seeds: number; trees: number }>({ seeds: 0, trees: 0 });
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -64,6 +66,15 @@ export const Leaderboard = ({ currentUserId }: LeaderboardProps) => {
                 rank: idx + 1
               }));
             setSeedLeaderboard(seedEntries);
+            
+            // Check for rank changes
+            const currentUserSeedRank = seedEntries.find(e => e.user_id === currentUserId)?.rank;
+            if (currentUserSeedRank && currentUserSeedRank <= 10 && onRankChange) {
+              if (previousRanks.seeds === 0 || currentUserSeedRank < previousRanks.seeds) {
+                onRankChange(currentUserSeedRank, 'Seed Points');
+              }
+              setPreviousRanks(prev => ({ ...prev, seeds: currentUserSeedRank }));
+            }
           }
 
           if (treeData) {
@@ -77,6 +88,15 @@ export const Leaderboard = ({ currentUserId }: LeaderboardProps) => {
                 rank: idx + 1
               }));
             setTreeLeaderboard(treeEntries);
+            
+            // Check for rank changes
+            const currentUserTreeRank = treeEntries.find(e => e.user_id === currentUserId)?.rank;
+            if (currentUserTreeRank && currentUserTreeRank <= 10 && onRankChange) {
+              if (previousRanks.trees === 0 || currentUserTreeRank < previousRanks.trees) {
+                onRankChange(currentUserTreeRank, 'Trees Planted');
+              }
+              setPreviousRanks(prev => ({ ...prev, trees: currentUserTreeRank }));
+            }
           }
         }
       } catch (error) {
