@@ -10,12 +10,11 @@ import confetti from 'canvas-confetti';
 
 interface RewardsShopProps {
   userId?: string;
-  seedPoints: number;
   onPurchase?: (newBalance: number) => void;
 }
 
-export const RewardsShop = ({ userId, seedPoints, onPurchase }: RewardsShopProps) => {
-  const { shopItems, loading, purchaseItem, hasPurchased } = useRewardsShop(userId);
+export const RewardsShop = ({ userId, onPurchase }: RewardsShopProps) => {
+  const { shopItems, seedPoints, loading, purchaseItem, hasPurchased, refetch } = useRewardsShop(userId);
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
@@ -73,8 +72,14 @@ export const RewardsShop = ({ userId, seedPoints, onPurchase }: RewardsShopProps
   };
 
   const getFilteredItems = (category: string) => {
-    if (category === 'all') return shopItems;
-    return shopItems.filter(item => item.category === category);
+    const items = category === 'all' ? shopItems : shopItems.filter(item => item.category === category);
+    // Sort: unpurchased items first, then purchased items at the bottom
+    return [...items].sort((a, b) => {
+      const aOwned = hasPurchased(a.id);
+      const bOwned = hasPurchased(b.id);
+      if (aOwned === bOwned) return 0;
+      return aOwned ? 1 : -1;
+    });
   };
 
   const getCategoryColor = (category: string) => {

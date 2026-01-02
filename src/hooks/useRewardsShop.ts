@@ -22,6 +22,7 @@ interface UserPurchase {
 export const useRewardsShop = (userId: string | undefined) => {
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [purchases, setPurchases] = useState<UserPurchase[]>([]);
+  const [seedPoints, setSeedPoints] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const fetchShopData = useCallback(async () => {
@@ -36,21 +37,49 @@ export const useRewardsShop = (userId: string | undefined) => {
       if (itemsError) throw itemsError;
       setShopItems(items || []);
 
-      // Fetch user purchases if logged in
+      // Fetch user purchases and seed points if logged in
       if (userId) {
-        const { data: userPurchases, error: purchasesError } = await supabase
-          .from('user_purchases')
-          .select('*')
-          .eq('user_id', userId);
+        const [purchasesResult, progressResult] = await Promise.all([
+          supabase.from('user_purchases').select('*').eq('user_id', userId),
+          supabase.from('user_progress').select('seed_points').eq('user_id', userId).maybeSingle()
+        ]);
 
-        if (purchasesError) throw purchasesError;
-        setPurchases(userPurchases || []);
+        if (purchasesResult.error) throw purchasesResult.error;
+        setPurchases(purchasesResult.data || []);
+        setSeedPoints(progressResult.data?.seed_points || 0);
       }
     } catch (error) {
       console.error('Error fetching shop data:', error);
     } finally {
       setLoading(false);
     }
+  }, [userId]);
+
+  // Real-time subscription for seed points updates
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel('seed-points-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_progress',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          if (payload.new && 'seed_points' in payload.new) {
+            setSeedPoints(payload.new.seed_points as number);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -111,6 +140,7 @@ export const useRewardsShop = (userId: string | undefined) => {
   return {
     shopItems,
     purchases,
+    seedPoints,
     loading,
     purchaseItem,
     hasPurchased,

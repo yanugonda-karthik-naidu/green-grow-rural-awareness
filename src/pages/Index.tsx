@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
@@ -57,7 +58,8 @@ const Index = () => {
   const { translate } = useTranslation();
   
   // Notifications
-  const { addNotification, checkLeaderboardAchievement, checkStreakAchievement, unreadCount } = useNotifications(user?.id);
+  const { notifications, addNotification, checkLeaderboardAchievement, checkStreakAchievement, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Slogans - will be translated
   const [slogans, setSlogans] = useState([
@@ -211,7 +213,6 @@ const Index = () => {
     { id: 'achievements', label: t.achievements, icon: Trophy },
     { id: 'challenges', label: 'Challenges', icon: Flame },
     { id: 'shop', label: 'Shop', icon: ShoppingBag },
-    { id: 'notifications', label: 'Alerts', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
@@ -282,7 +283,53 @@ const Index = () => {
           </div>
         </div>
         
-        <div className="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end">
+        <div className="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end items-center">
+          {/* Notifications Bell */}
+          <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="secondary" 
+                size="icon"
+                className="relative bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-3 border-b flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Notifications</h4>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllAsRead}>
+                    Mark all read
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-6">No notifications</p>
+                ) : (
+                  notifications.slice(0, 10).map((notification) => (
+                    <div 
+                      key={notification.id}
+                      onClick={() => !notification.is_read && markAsRead(notification.id)}
+                      className={`p-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors ${
+                        !notification.is_read ? 'bg-primary/5' : ''
+                      }`}
+                    >
+                      <p className="font-medium text-sm">{notification.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{notification.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <LanguageSwitcher />
           <Button 
             variant="secondary" 
@@ -308,20 +355,15 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-        <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-2 h-auto p-2 bg-card">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-11 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
                 value={item.id}
-                className="flex flex-col items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                className="flex flex-col items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 <item.icon className="h-5 w-5" />
                 <span className="text-xs md:text-sm">{item.label}</span>
-                {'badge' in item && item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
-                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -389,7 +431,6 @@ const Index = () => {
           <TabsContent value="shop">
             <RewardsShop 
               userId={user?.id}
-              seedPoints={progress.seed_points || 0}
               onPurchase={async (newBalance) => {
                 await addNotification(
                   '🛒 Purchase Complete!',
@@ -399,10 +440,6 @@ const Index = () => {
                 await refetch();
               }}
             />
-          </TabsContent>
-
-          <TabsContent value="notifications">
-            <NotificationsPanel userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="library">
