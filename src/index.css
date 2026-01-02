@@ -134,6 +134,95 @@ All colors MUST be HSL.
   .animate-bounce-slow {
     animation: bounceSlow 3s ease-in-out infinite;
   }
+
+  /* Animated Frame Effects */
+  .frame-golden-crown {
+    position: relative;
+  }
+  .frame-golden-crown::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: linear-gradient(45deg, #ffd700, #ff8c00, #ffd700, #ffeb3b, #ffd700);
+    background-size: 400% 400%;
+    animation: goldShimmer 3s ease infinite;
+    z-index: -1;
+  }
+  
+  .frame-nature-guardian {
+    position: relative;
+  }
+  .frame-nature-guardian::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: linear-gradient(45deg, #22c55e, #16a34a, #4ade80, #22c55e);
+    background-size: 400% 400%;
+    animation: leafGlow 2s ease infinite;
+    z-index: -1;
+  }
+  
+  .frame-fire-ring {
+    position: relative;
+  }
+  .frame-fire-ring::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: linear-gradient(45deg, #ef4444, #f97316, #eab308, #ef4444);
+    background-size: 300% 300%;
+    animation: fireFlicker 1s ease infinite;
+    z-index: -1;
+  }
+  
+  .frame-crystal-aura {
+    position: relative;
+  }
+  .frame-crystal-aura::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: linear-gradient(45deg, #a78bfa, #c4b5fd, #e879f9, #a78bfa);
+    background-size: 400% 400%;
+    animation: crystalShine 2.5s ease infinite;
+    z-index: -1;
+  }
+  
+  .frame-rainbow-halo {
+    position: relative;
+  }
+  .frame-rainbow-halo::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: linear-gradient(45deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444);
+    background-size: 600% 600%;
+    animation: rainbowRotate 4s linear infinite;
+    z-index: -1;
+  }
+
+  /* Badge glow effects */
+  .badge-glow {
+    animation: badgeGlow 2s ease-in-out infinite;
+  }
+
+  /* Sparkle effect */
+  .sparkle-effect {
+    position: relative;
+  }
+  .sparkle-effect::after {
+    content: '✨';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 12px;
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
 }
 
 @keyframes slideUp {
@@ -164,5 +253,58 @@ All colors MUST be HSL.
   }
   50% {
     transform: translateY(-5px);
+  }
+}
+
+@keyframes goldShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes leafGlow {
+  0%, 100% { 
+    background-position: 0% 50%; 
+    opacity: 0.8;
+  }
+  50% { 
+    background-position: 100% 50%; 
+    opacity: 1;
+  }
+}
+
+@keyframes fireFlicker {
+  0%, 100% { background-position: 0% 50%; opacity: 1; }
+  25% { opacity: 0.9; }
+  50% { background-position: 100% 50%; opacity: 1; }
+  75% { opacity: 0.85; }
+}
+
+@keyframes crystalShine {
+  0%, 100% { background-position: 0% 50%; filter: brightness(1); }
+  50% { background-position: 100% 50%; filter: brightness(1.2); }
+}
+
+@keyframes rainbowRotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 600% 50%; }
+}
+
+@keyframes badgeGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 2px currentColor); 
+  }
+  50% { 
+    filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 12px currentColor); 
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% { 
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
   }
 }

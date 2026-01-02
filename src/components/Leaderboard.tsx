@@ -3,8 +3,15 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Medal, Crown, Leaf, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { Trophy, Medal, Crown, Leaf, Sparkles, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+interface EquippedItem {
+  id: string;
+  name: string;
+  category: string;
+  image_url: string | null;
+}
 
 interface LeaderboardEntry {
   user_id: string;
@@ -12,12 +19,33 @@ interface LeaderboardEntry {
   seed_points: number;
   trees_planted: number;
   rank: number;
+  equippedFrame?: EquippedItem | null;
+  equippedBadges?: EquippedItem[];
+  equippedTitle?: EquippedItem | null;
 }
 
 interface LeaderboardProps {
   currentUserId?: string;
   onRankChange?: (rank: number, category: string) => void;
 }
+
+// Helper to get frame class from item name
+const getFrameClass = (frameName: string): string => {
+  const frameMap: Record<string, string> = {
+    'Golden Crown': 'frame-golden-crown',
+    'Nature Guardian': 'frame-nature-guardian',
+    'Fire Ring': 'frame-fire-ring',
+    'Crystal Aura': 'frame-crystal-aura',
+    'Rainbow Halo': 'frame-rainbow-halo',
+  };
+  return frameMap[frameName] || '';
+};
+
+// Get equipped items for a user from localStorage
+const getEquippedItemsFromStorage = (userId: string): string[] => {
+  const saved = localStorage.getItem(`equipped_items_${userId}`);
+  return saved ? JSON.parse(saved) : [];
+};
 
 export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) => {
   const [seedLeaderboard, setSeedLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -55,16 +83,47 @@ export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) =
 
           const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
 
+          // Get all equipped item IDs for current user if available
+          const currentUserEquipped = currentUserId ? getEquippedItemsFromStorage(currentUserId) : [];
+          
+          // Fetch equipped item details if any
+          let equippedItemsMap = new Map<string, EquippedItem>();
+          if (currentUserEquipped.length > 0) {
+            const { data: items } = await supabase
+              .from('shop_items')
+              .select('id, name, category, image_url')
+              .in('id', currentUserEquipped);
+            
+            items?.forEach(item => equippedItemsMap.set(item.id, item));
+          }
+
+          const getEquippedForUser = (userId: string) => {
+            if (userId !== currentUserId) return { frame: null, badges: [], title: null };
+            
+            const equipped = Array.from(equippedItemsMap.values());
+            return {
+              frame: equipped.find(i => i.category === 'frame') || null,
+              badges: equipped.filter(i => i.category === 'badge'),
+              title: equipped.find(i => i.category === 'title') || null,
+            };
+          };
+
           if (seedData) {
             const seedEntries = seedData
               .filter(d => (d.seed_points || 0) > 0)
-              .map((d, idx) => ({
-                user_id: d.user_id,
-                display_name: profileMap.get(d.user_id) || 'Anonymous',
-                seed_points: d.seed_points || 0,
-                trees_planted: d.trees_planted || 0,
-                rank: idx + 1
-              }));
+              .map((d, idx) => {
+                const equipped = getEquippedForUser(d.user_id);
+                return {
+                  user_id: d.user_id,
+                  display_name: profileMap.get(d.user_id) || 'Anonymous',
+                  seed_points: d.seed_points || 0,
+                  trees_planted: d.trees_planted || 0,
+                  rank: idx + 1,
+                  equippedFrame: equipped.frame,
+                  equippedBadges: equipped.badges,
+                  equippedTitle: equipped.title,
+                };
+              });
             setSeedLeaderboard(seedEntries);
             
             // Check for rank changes
@@ -80,13 +139,19 @@ export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) =
           if (treeData) {
             const treeEntries = treeData
               .filter(d => (d.trees_planted || 0) > 0)
-              .map((d, idx) => ({
-                user_id: d.user_id,
-                display_name: profileMap.get(d.user_id) || 'Anonymous',
-                seed_points: d.seed_points || 0,
-                trees_planted: d.trees_planted || 0,
-                rank: idx + 1
-              }));
+              .map((d, idx) => {
+                const equipped = getEquippedForUser(d.user_id);
+                return {
+                  user_id: d.user_id,
+                  display_name: profileMap.get(d.user_id) || 'Anonymous',
+                  seed_points: d.seed_points || 0,
+                  trees_planted: d.trees_planted || 0,
+                  rank: idx + 1,
+                  equippedFrame: equipped.frame,
+                  equippedBadges: equipped.badges,
+                  equippedTitle: equipped.title,
+                };
+              });
             setTreeLeaderboard(treeEntries);
             
             // Check for rank changes
@@ -117,7 +182,7 @@ export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) =
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUserId]);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500" />;
@@ -145,6 +210,8 @@ export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) =
         ) : (
           entries.map((entry) => {
             const isCurrentUser = entry.user_id === currentUserId;
+            const frameClass = entry.equippedFrame ? getFrameClass(entry.equippedFrame.name) : '';
+            
             return (
               <Card 
                 key={entry.user_id} 
@@ -152,14 +219,28 @@ export const Leaderboard = ({ currentUserId, onRankChange }: LeaderboardProps) =
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center">
+                    <div className={`w-8 h-8 flex items-center justify-center rounded-full ${frameClass}`}>
                       {getRankIcon(entry.rank)}
                     </div>
                     <div>
-                      <p className={`font-medium ${isCurrentUser ? 'text-primary' : 'text-foreground'}`}>
-                        {entry.display_name}
-                        {isCurrentUser && <Badge variant="secondary" className="ml-2 text-xs">You</Badge>}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`font-medium ${isCurrentUser ? 'text-primary' : 'text-foreground'}`}>
+                          {entry.display_name}
+                        </p>
+                        {/* Show equipped title */}
+                        {entry.equippedTitle && (
+                          <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-600 border-purple-500/30">
+                            {entry.equippedTitle.image_url} {entry.equippedTitle.name}
+                          </Badge>
+                        )}
+                        {/* Show equipped badges */}
+                        {entry.equippedBadges?.map(badge => (
+                          <span key={badge.id} className="text-lg badge-glow" title={badge.name}>
+                            {badge.image_url}
+                          </span>
+                        ))}
+                        {isCurrentUser && <Badge variant="secondary" className="text-xs">You</Badge>}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {metric === 'seeds' 
                           ? `🌳 ${entry.trees_planted} trees planted`
