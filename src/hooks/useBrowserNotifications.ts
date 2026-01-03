@@ -1,9 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useBrowserNotifications = (userId: string | undefined) => {
+// Notification sound as base64 data URL (short chime)
+const NOTIFICATION_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleW0pUaDC3buZYCwrZZ694LqQV0VZm77jt5BAMESQu+bQqXo3UY2z6c6idEpblq7nxph1U2qls+O6l3ZgdKiv4rWUe3x7p63fs4+EiYWYq97AkIF/h5eo3K+Ogop8lKfSx56FfHyPps/NqI9zdXmSpsm7m5N0Z3GPoMm1l5d7aWeNnb+0nJZ8a2aQnLy1lpd8bmiPnL21lpZ6a2eQnLy1lpZ8bmiPnLy1lpd8bmeQnLy0lpd9bmeQnLy1lpd9bmiQnLy1lpd9bmiQnL21lpd9bmiQnLy1lpd9bmiQnL21lph9bmiQnLy1l5h9bmiQnLy1l5h9bmiQnLy1';
+
+interface UseBrowserNotificationsOptions {
+  soundEnabled?: boolean;
+  onNotificationReceived?: (notification: { title: string; message: string; notification_type: string }) => void;
+}
+
+export const useBrowserNotifications = (
+  userId: string | undefined, 
+  options: UseBrowserNotificationsOptions = {}
+) => {
+  const { soundEnabled = true, onNotificationReceived } = options;
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Check if browser supports notifications
@@ -13,7 +26,20 @@ export const useBrowserNotifications = (userId: string | undefined) => {
     if (supported) {
       setPermission(Notification.permission);
     }
+
+    // Initialize audio element
+    audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
+    audioRef.current.volume = 0.5;
   }, []);
+
+  const playSound = useCallback(() => {
+    if (soundEnabled && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {
+        // Ignore autoplay errors
+      });
+    }
+  }, [soundEnabled]);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false;
@@ -32,6 +58,9 @@ export const useBrowserNotifications = (userId: string | undefined) => {
     if (!isSupported || permission !== 'granted') return;
 
     try {
+      // Play sound
+      playSound();
+
       const notification = new Notification(title, {
         icon: '/favicon.ico',
         ...options,
@@ -47,7 +76,7 @@ export const useBrowserNotifications = (userId: string | undefined) => {
     } catch (error) {
       console.error('Error showing notification:', error);
     }
-  }, [isSupported, permission]);
+  }, [isSupported, permission, playSound]);
 
   // Subscribe to realtime notifications
   useEffect(() => {
@@ -70,7 +99,10 @@ export const useBrowserNotifications = (userId: string | undefined) => {
             notification_type: string;
           };
 
-          // Show browser notification for new notifications
+          // Call callback if provided
+          onNotificationReceived?.(newNotification);
+
+          // Show browser notification
           showNotification(newNotification.title, {
             body: newNotification.message,
             tag: newNotification.notification_type,
@@ -82,12 +114,13 @@ export const useBrowserNotifications = (userId: string | undefined) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, permission, showNotification]);
+  }, [userId, permission, showNotification, onNotificationReceived]);
 
   return {
     isSupported,
     permission,
     requestPermission,
     showNotification,
+    playSound,
   };
 };

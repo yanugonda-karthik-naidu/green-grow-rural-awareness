@@ -215,6 +215,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          achievements_enabled: boolean | null
+          browser_notifications_enabled: boolean | null
+          challenges_enabled: boolean | null
+          community_enabled: boolean | null
+          created_at: string
+          id: string
+          leaderboard_enabled: boolean | null
+          sound_enabled: boolean | null
+          streak_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievements_enabled?: boolean | null
+          browser_notifications_enabled?: boolean | null
+          challenges_enabled?: boolean | null
+          community_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          leaderboard_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          streak_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievements_enabled?: boolean | null
+          browser_notifications_enabled?: boolean | null
+          challenges_enabled?: boolean | null
+          community_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          leaderboard_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          streak_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       planted_trees: {
         Row: {
           area_m2: number | null

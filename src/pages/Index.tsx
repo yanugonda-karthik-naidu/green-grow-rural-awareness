@@ -12,6 +12,7 @@ import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
@@ -60,7 +61,10 @@ const Index = () => {
   
   // Notifications
   const { notifications, addNotification, checkLeaderboardAchievement, checkStreakAchievement, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
-  const { permission, requestPermission, isSupported } = useBrowserNotifications(user?.id);
+  const { preferences: notifPrefs } = useNotificationPreferences(user?.id);
+  const { permission, requestPermission, isSupported } = useBrowserNotifications(user?.id, {
+    soundEnabled: notifPrefs.sound_enabled,
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Slogans - will be translated
