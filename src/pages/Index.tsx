@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell, BellRing } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
@@ -59,6 +60,7 @@ const Index = () => {
   
   // Notifications
   const { notifications, addNotification, checkLeaderboardAchievement, checkStreakAchievement, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
+  const { permission, requestPermission, isSupported } = useBrowserNotifications(user?.id);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Slogans - will be translated
@@ -303,12 +305,31 @@ const Index = () => {
             <PopoverContent className="w-80 p-0" align="end">
               <div className="p-3 border-b flex items-center justify-between">
                 <h4 className="font-semibold text-sm">Notifications</h4>
-                {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllAsRead}>
-                    Mark all read
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isSupported && permission !== 'granted' && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs h-7 gap-1" 
+                      onClick={requestPermission}
+                    >
+                      <BellRing className="h-3 w-3" />
+                      Enable
+                    </Button>
+                  )}
+                  {unreadCount > 0 && (
+                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllAsRead}>
+                      Mark all read
+                    </Button>
+                  )}
+                </div>
               </div>
+              {isSupported && permission === 'granted' && (
+                <div className="px-3 py-2 bg-green-50 dark:bg-green-950/30 border-b text-xs text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <BellRing className="h-3 w-3" />
+                  Browser notifications enabled
+                </div>
+              )}
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <p className="text-center text-muted-foreground text-sm py-6">No notifications</p>
