@@ -225,6 +225,7 @@ export type Database = {
           id: string
           leaderboard_enabled: boolean | null
           sound_enabled: boolean | null
+          sound_type: string | null
           streak_enabled: boolean | null
           updated_at: string
           user_id: string
@@ -238,6 +239,7 @@ export type Database = {
           id?: string
           leaderboard_enabled?: boolean | null
           sound_enabled?: boolean | null
+          sound_type?: string | null
           streak_enabled?: boolean | null
           updated_at?: string
           user_id: string
@@ -251,6 +253,7 @@ export type Database = {
           id?: string
           leaderboard_enabled?: boolean | null
           sound_enabled?: boolean | null
+          sound_type?: string | null
           streak_enabled?: boolean | null
           updated_at?: string
           user_id?: string

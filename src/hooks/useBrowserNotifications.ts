@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-// Notification sound as base64 data URL (short chime)
-const NOTIFICATION_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleW0pUaDC3buZYCwrZZ694LqQV0VZm77jt5BAMESQu+bQqXo3UY2z6c6idEpblq7nxph1U2qls+O6l3ZgdKiv4rWUe3x7p63fs4+EiYWYq97AkIF/h5eo3K+Ogop8lKfSx56FfHyPps/NqI9zdXmSpsm7m5N0Z3GPoMm1l5d7aWeNnb+0nJZ8a2aQnLy1lpd8bmiPnL21lpZ6a2eQnLy1lpZ8bmiPnLy1lpd8bmeQnLy0lpd9bmeQnLy1lpd9bmiQnLy1lpd9bmiQnL21lpd9bmiQnLy1lpd9bmiQnL21lph9bmiQnLy1l5h9bmiQnLy1l5h9bmiQnLy1';
+import { SoundType, playNotificationSound } from '@/lib/notificationSounds';
 
 interface UseBrowserNotificationsOptions {
   soundEnabled?: boolean;
+  soundType?: SoundType;
   onNotificationReceived?: (notification: { title: string; message: string; notification_type: string }) => void;
 }
 
@@ -13,10 +12,9 @@ export const useBrowserNotifications = (
   userId: string | undefined, 
   options: UseBrowserNotificationsOptions = {}
 ) => {
-  const { soundEnabled = true, onNotificationReceived } = options;
+  const { soundEnabled = true, soundType = 'chime', onNotificationReceived } = options;
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Check if browser supports notifications
@@ -26,20 +24,13 @@ export const useBrowserNotifications = (
     if (supported) {
       setPermission(Notification.permission);
     }
-
-    // Initialize audio element
-    audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
-    audioRef.current.volume = 0.5;
   }, []);
 
   const playSound = useCallback(() => {
-    if (soundEnabled && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        // Ignore autoplay errors
-      });
+    if (soundEnabled) {
+      playNotificationSound(soundType);
     }
-  }, [soundEnabled]);
+  }, [soundEnabled, soundType]);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return false;

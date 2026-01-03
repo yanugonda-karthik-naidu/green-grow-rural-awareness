@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, MapPin, Mail, Phone, Loader2, ArrowLeft, ShoppingBag, Settings, Bell } from "lucide-react";
+import { User, MapPin, Mail, Phone, Loader2, ArrowLeft, ShoppingBag, Settings, Bell, History } from "lucide-react";
 import { z } from "zod";
 import { PurchasedItems } from "@/components/PurchasedItems";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
+import { NotificationHistory } from "@/components/NotificationHistory";
 
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
@@ -116,18 +117,22 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" />
-                Account
+                <span className="hidden sm:inline">Account</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="gap-2">
                 <Bell className="h-4 w-4" />
-                Notifications
+                <span className="hidden sm:inline">Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="gap-2">
+                <History className="h-4 w-4" />
+                <span className="hidden sm:inline">History</span>
               </TabsTrigger>
               <TabsTrigger value="collection" className="gap-2">
                 <ShoppingBag className="h-4 w-4" />
-                Collection
+                <span className="hidden sm:inline">Collection</span>
               </TabsTrigger>
             </TabsList>
 
@@ -227,6 +232,10 @@ const Profile = () => {
 
             <TabsContent value="notifications">
               {userId && <NotificationPreferences userId={userId} />}
+            </TabsContent>
+
+            <TabsContent value="history">
+              {userId && <NotificationHistory userId={userId} />}
             </TabsContent>
 
             <TabsContent value="collection">

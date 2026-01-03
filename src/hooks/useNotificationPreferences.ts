@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { SoundType } from '@/lib/notificationSounds';
 
 export interface NotificationPreferences {
   sound_enabled: boolean;
+  sound_type: SoundType;
   achievements_enabled: boolean;
   leaderboard_enabled: boolean;
   challenges_enabled: boolean;
@@ -13,6 +15,7 @@ export interface NotificationPreferences {
 
 const defaultPreferences: NotificationPreferences = {
   sound_enabled: true,
+  sound_type: 'chime',
   achievements_enabled: true,
   leaderboard_enabled: true,
   challenges_enabled: true,
@@ -43,6 +46,7 @@ export const useNotificationPreferences = (userId: string | undefined) => {
       if (data) {
         setPreferences({
           sound_enabled: data.sound_enabled ?? true,
+          sound_type: (data.sound_type as SoundType) ?? 'chime',
           achievements_enabled: data.achievements_enabled ?? true,
           leaderboard_enabled: data.leaderboard_enabled ?? true,
           challenges_enabled: data.challenges_enabled ?? true,
@@ -68,9 +72,14 @@ export const useNotificationPreferences = (userId: string | undefined) => {
     fetchPreferences();
   }, [fetchPreferences]);
 
-  const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {
+  const updatePreference = async <K extends keyof NotificationPreferences>(
+    key: K, 
+    value: NotificationPreferences[K]
+  ) => {
     if (!userId) return;
 
+    const previousValue = preferences[key];
+    
     // Optimistic update
     setPreferences(prev => ({ ...prev, [key]: value }));
 
@@ -82,7 +91,7 @@ export const useNotificationPreferences = (userId: string | undefined) => {
     if (error) {
       console.error('Error updating preference:', error);
       // Revert on error
-      setPreferences(prev => ({ ...prev, [key]: !value }));
+      setPreferences(prev => ({ ...prev, [key]: previousValue }));
     }
   };
 
