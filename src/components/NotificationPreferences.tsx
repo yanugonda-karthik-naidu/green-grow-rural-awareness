@@ -2,8 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Bell, BellRing, Trophy, Crown, Flame, Users, Zap, Volume2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bell, BellRing, Trophy, Crown, Flame, Users, Zap, Volume2, Play } from "lucide-react";
 import { useNotificationPreferences, NotificationPreferences as Prefs } from "@/hooks/useNotificationPreferences";
+import { NOTIFICATION_SOUNDS, SoundType, playNotificationSound } from "@/lib/notificationSounds";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface NotificationPreferencesProps {
@@ -12,6 +15,10 @@ interface NotificationPreferencesProps {
 
 export const NotificationPreferences = ({ userId }: NotificationPreferencesProps) => {
   const { preferences, loading, updatePreference } = useNotificationPreferences(userId);
+
+  const handlePreviewSound = (soundType: SoundType) => {
+    playNotificationSound(soundType);
+  };
 
   if (loading) {
     return (
@@ -29,8 +36,8 @@ export const NotificationPreferences = ({ userId }: NotificationPreferencesProps
     );
   }
 
-  const preferenceItems: {
-    key: keyof Prefs;
+  const toggleItems: {
+    key: keyof Omit<Prefs, 'sound_type'>;
     label: string;
     description: string;
     icon: React.ElementType;
@@ -91,7 +98,55 @@ export const NotificationPreferences = ({ userId }: NotificationPreferencesProps
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {preferenceItems.map((item, index) => (
+        {/* Sound Type Selection */}
+        {preferences.sound_enabled && (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Volume2 className="h-4 w-4 text-primary" />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">
+                    Notification Sound
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Choose your preferred alert tone
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={preferences.sound_type}
+                  onValueChange={(value: SoundType) => updatePreference('sound_type', value)}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(NOTIFICATION_SOUNDS).map(([key, sound]) => (
+                      <SelectItem key={key} value={key}>
+                        {sound.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePreviewSound(preferences.sound_type)}
+                  title="Preview sound"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
+        {/* Toggle Items */}
+        {toggleItems.map((item, index) => (
           <div key={item.key}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -109,11 +164,11 @@ export const NotificationPreferences = ({ userId }: NotificationPreferencesProps
               </div>
               <Switch
                 id={item.key}
-                checked={preferences[item.key]}
+                checked={preferences[item.key] as boolean}
                 onCheckedChange={(checked) => updatePreference(item.key, checked)}
               />
             </div>
-            {index < preferenceItems.length - 1 && <Separator className="mt-4" />}
+            {index < toggleItems.length - 1 && <Separator className="mt-4" />}
           </div>
         ))}
       </CardContent>

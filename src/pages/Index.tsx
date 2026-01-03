@@ -64,6 +64,7 @@ const Index = () => {
   const { preferences: notifPrefs } = useNotificationPreferences(user?.id);
   const { permission, requestPermission, isSupported } = useBrowserNotifications(user?.id, {
     soundEnabled: notifPrefs.sound_enabled,
+    soundType: notifPrefs.sound_type,
   });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
