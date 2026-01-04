@@ -93,7 +93,7 @@ export const useBrowserNotifications = (
           // Call callback if provided
           onNotificationReceived?.(newNotification);
 
-          // Show browser notification
+          // Show browser notification (sound will respect quiet hours via preferences)
           showNotification(newNotification.title, {
             body: newNotification.message,
             tag: newNotification.notification_type,

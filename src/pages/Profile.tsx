@@ -12,6 +12,7 @@ import { z } from "zod";
 import { PurchasedItems } from "@/components/PurchasedItems";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { NotificationHistory } from "@/components/NotificationHistory";
+import { WeeklySummary } from "@/components/WeeklySummary";
 
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
@@ -234,8 +235,13 @@ const Profile = () => {
               {userId && <NotificationPreferences userId={userId} />}
             </TabsContent>
 
-            <TabsContent value="history">
-              {userId && <NotificationHistory userId={userId} />}
+            <TabsContent value="history" className="space-y-6">
+              {userId && (
+                <>
+                  <WeeklySummary userId={userId} />
+                  <NotificationHistory userId={userId} />
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="collection">

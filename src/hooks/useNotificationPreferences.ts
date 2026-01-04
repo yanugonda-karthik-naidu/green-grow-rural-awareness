@@ -11,6 +11,9 @@ export interface NotificationPreferences {
   streak_enabled: boolean;
   community_enabled: boolean;
   browser_notifications_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
 }
 
 const defaultPreferences: NotificationPreferences = {
@@ -22,6 +25,9 @@ const defaultPreferences: NotificationPreferences = {
   streak_enabled: true,
   community_enabled: true,
   browser_notifications_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: '22:00',
+  quiet_hours_end: '07:00',
 };
 
 export const useNotificationPreferences = (userId: string | undefined) => {
@@ -53,6 +59,9 @@ export const useNotificationPreferences = (userId: string | undefined) => {
           streak_enabled: data.streak_enabled ?? true,
           community_enabled: data.community_enabled ?? true,
           browser_notifications_enabled: data.browser_notifications_enabled ?? true,
+          quiet_hours_enabled: data.quiet_hours_enabled ?? false,
+          quiet_hours_start: data.quiet_hours_start ?? '22:00',
+          quiet_hours_end: data.quiet_hours_end ?? '07:00',
         });
       } else {
         // Create default preferences for new users
@@ -95,7 +104,30 @@ export const useNotificationPreferences = (userId: string | undefined) => {
     }
   };
 
+  const isInQuietHours = (): boolean => {
+    if (!preferences.quiet_hours_enabled) return false;
+
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    const [startHour, startMin] = preferences.quiet_hours_start.split(':').map(Number);
+    const [endHour, endMin] = preferences.quiet_hours_end.split(':').map(Number);
+    
+    const startTime = startHour * 60 + startMin;
+    const endTime = endHour * 60 + endMin;
+
+    // Handle overnight quiet hours (e.g., 22:00 - 07:00)
+    if (startTime > endTime) {
+      return currentTime >= startTime || currentTime < endTime;
+    }
+    
+    return currentTime >= startTime && currentTime < endTime;
+  };
+
   const shouldNotify = (type: string): boolean => {
+    // Check quiet hours first
+    if (isInQuietHours()) return false;
+
     switch (type) {
       case 'achievement':
         return preferences.achievements_enabled;
@@ -117,6 +149,7 @@ export const useNotificationPreferences = (userId: string | undefined) => {
     loading,
     updatePreference,
     shouldNotify,
+    isInQuietHours,
     refetch: fetchPreferences,
   };
 };
