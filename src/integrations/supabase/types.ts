@@ -222,8 +222,13 @@ export type Database = {
           challenges_enabled: boolean | null
           community_enabled: boolean | null
           created_at: string
+          email_address: string | null
+          email_digest_enabled: boolean | null
           id: string
           leaderboard_enabled: boolean | null
+          quiet_hours_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
           sound_enabled: boolean | null
           sound_type: string | null
           streak_enabled: boolean | null
@@ -236,8 +241,13 @@ export type Database = {
           challenges_enabled?: boolean | null
           community_enabled?: boolean | null
           created_at?: string
+          email_address?: string | null
+          email_digest_enabled?: boolean | null
           id?: string
           leaderboard_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
           sound_enabled?: boolean | null
           sound_type?: string | null
           streak_enabled?: boolean | null
@@ -250,8 +260,13 @@ export type Database = {
           challenges_enabled?: boolean | null
           community_enabled?: boolean | null
           created_at?: string
+          email_address?: string | null
+          email_digest_enabled?: boolean | null
           id?: string
           leaderboard_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
           sound_enabled?: boolean | null
           sound_type?: string | null
           streak_enabled?: boolean | null
