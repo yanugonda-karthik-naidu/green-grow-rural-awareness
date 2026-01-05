@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Calendar, 
@@ -13,9 +14,16 @@ import {
   Leaf,
   Award,
   CalendarDays,
-  CalendarRange
+  CalendarRange,
+  Download,
+  BarChart3
 } from "lucide-react";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subWeeks } from "date-fns";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 interface ActivitySummaryProps {
   userId: string | undefined;
@@ -30,6 +38,14 @@ interface PeriodStats {
   seedsEarned: number;
 }
 
+interface TrendDataPoint {
+  period: string;
+  trees: number;
+  co2: number;
+  o2: number;
+  achievements: number;
+}
+
 type PeriodType = 'weekly' | 'monthly' | 'yearly';
 
 const fetchStats = async (
@@ -37,7 +53,6 @@ const fetchStats = async (
   startDate: Date,
   endDate: Date
 ): Promise<PeriodStats> => {
-  // Fetch trees planted in period
   const { data: trees } = await supabase
     .from('planted_trees')
     .select('impact_co2_kg, impact_o2_l_per_day')
@@ -45,7 +60,6 @@ const fetchStats = async (
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
-  // Fetch achievements in period
   const { data: achievements } = await supabase
     .from('achievements')
     .select('seeds_earned')
@@ -53,7 +67,6 @@ const fetchStats = async (
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
-  // Fetch challenges completed in period
   const { data: challenges } = await supabase
     .from('user_challenge_completions')
     .select('seeds_earned')
@@ -77,6 +90,61 @@ const fetchStats = async (
     o2Generated,
     seedsEarned: seedsFromAchievements + seedsFromChallenges,
   };
+};
+
+const fetchTrendData = async (
+  userId: string,
+  periodType: PeriodType
+): Promise<TrendDataPoint[]> => {
+  const trendData: TrendDataPoint[] = [];
+  const now = new Date();
+  
+  if (periodType === 'weekly') {
+    // Last 6 weeks
+    for (let i = 5; i >= 0; i--) {
+      const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+      const stats = await fetchStats(userId, weekStart, weekEnd);
+      trendData.push({
+        period: format(weekStart, "MMM d"),
+        trees: stats.treesPlanted,
+        co2: Math.round(stats.co2Reduced * 10) / 10,
+        o2: Math.round(stats.o2Generated),
+        achievements: stats.achievementsEarned,
+      });
+    }
+  } else if (periodType === 'monthly') {
+    // Last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+      const stats = await fetchStats(userId, monthStart, monthEnd);
+      trendData.push({
+        period: format(monthStart, "MMM"),
+        trees: stats.treesPlanted,
+        co2: Math.round(stats.co2Reduced * 10) / 10,
+        o2: Math.round(stats.o2Generated),
+        achievements: stats.achievementsEarned,
+      });
+    }
+  } else {
+    // Last 3 years
+    for (let i = 2; i >= 0; i--) {
+      const year = now.getFullYear() - i;
+      const yearStart = new Date(year, 0, 1);
+      const yearEnd = new Date(year, 11, 31);
+      const stats = await fetchStats(userId, yearStart, yearEnd);
+      trendData.push({
+        period: year.toString(),
+        trees: stats.treesPlanted,
+        co2: Math.round(stats.co2Reduced * 10) / 10,
+        o2: Math.round(stats.o2Generated),
+        achievements: stats.achievementsEarned,
+      });
+    }
+  }
+  
+  return trendData;
 };
 
 const StatGrid = ({ stats }: { stats: PeriodStats }) => {
@@ -157,12 +225,188 @@ const StatGrid = ({ stats }: { stats: PeriodStats }) => {
   );
 };
 
+const chartConfig = {
+  trees: {
+    label: "Trees Planted",
+    color: "hsl(142 71% 35%)",
+  },
+  co2: {
+    label: "CO₂ Reduced (kg)",
+    color: "hsl(160 60% 45%)",
+  },
+  o2: {
+    label: "O₂ Generated (L)",
+    color: "hsl(200 80% 50%)",
+  },
+  achievements: {
+    label: "Achievements",
+    color: "hsl(45 100% 50%)",
+  },
+};
+
+const TrendChart = ({ data, periodType }: { data: TrendDataPoint[], periodType: PeriodType }) => {
+  const hasData = data.some(d => d.trees > 0 || d.co2 > 0 || d.achievements > 0);
+  
+  if (!hasData) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <p className="font-medium">No trend data available</p>
+        <p className="text-sm mt-1">Start planting trees to see your progress over time!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Trees & Achievements Bar Chart */}
+      <div className="h-64">
+        <p className="text-sm font-medium mb-2 text-muted-foreground">Trees & Achievements</p>
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="period" className="text-xs" />
+              <YAxis className="text-xs" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Legend />
+              <Bar dataKey="trees" name="Trees" fill="hsl(142 71% 35%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="achievements" name="Achievements" fill="hsl(45 100% 50%)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+
+      {/* CO2 & O2 Line Chart */}
+      <div className="h-64">
+        <p className="text-sm font-medium mb-2 text-muted-foreground">Environmental Impact</p>
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="period" className="text-xs" />
+              <YAxis className="text-xs" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="co2" 
+                name="CO₂ (kg)" 
+                stroke="hsl(160 60% 45%)" 
+                strokeWidth={2}
+                dot={{ fill: "hsl(160 60% 45%)" }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="o2" 
+                name="O₂ (L/day)" 
+                stroke="hsl(200 80% 50%)" 
+                strokeWidth={2}
+                dot={{ fill: "hsl(200 80% 50%)" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </div>
+  );
+};
+
+const generatePDF = (
+  stats: PeriodStats,
+  trendData: TrendDataPoint[],
+  periodType: PeriodType,
+  dateRange: { start: Date; end: Date }
+) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Header
+  doc.setFillColor(34, 139, 34);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text("Environmental Impact Report", pageWidth / 2, 20, { align: "center" });
+  
+  doc.setFontSize(12);
+  const periodLabel = periodType === 'weekly' 
+    ? `Week of ${format(dateRange.start, "MMM d")} - ${format(dateRange.end, "MMM d, yyyy")}`
+    : periodType === 'monthly'
+    ? format(dateRange.start, "MMMM yyyy")
+    : format(dateRange.start, "yyyy");
+  doc.text(periodLabel, pageWidth / 2, 32, { align: "center" });
+  
+  // Reset colors
+  doc.setTextColor(0, 0, 0);
+  
+  // Summary Section
+  doc.setFontSize(16);
+  doc.text("Activity Summary", 14, 55);
+  
+  const summaryData = [
+    ["Trees Planted", stats.treesPlanted.toString()],
+    ["CO₂ Reduced", `${stats.co2Reduced.toFixed(1)} kg`],
+    ["O₂ Generated", `${stats.o2Generated.toFixed(0)} L/day`],
+    ["Achievements Earned", stats.achievementsEarned.toString()],
+    ["Challenges Completed", stats.challengesCompleted.toString()],
+    ["Seeds Earned", stats.seedsEarned.toString()],
+  ];
+  
+  autoTable(doc, {
+    startY: 60,
+    head: [["Metric", "Value"]],
+    body: summaryData,
+    theme: 'grid',
+    headStyles: { fillColor: [34, 139, 34] },
+    styles: { halign: 'center' },
+  });
+  
+  // Trend Data Section
+  const finalY = (doc as any).lastAutoTable.finalY || 120;
+  doc.setFontSize(16);
+  doc.text("Progress Over Time", 14, finalY + 15);
+  
+  const trendHeaders = ["Period", "Trees", "CO₂ (kg)", "O₂ (L/day)", "Achievements"];
+  const trendRows = trendData.map(d => [
+    d.period,
+    d.trees.toString(),
+    d.co2.toString(),
+    d.o2.toString(),
+    d.achievements.toString(),
+  ]);
+  
+  autoTable(doc, {
+    startY: finalY + 20,
+    head: [trendHeaders],
+    body: trendRows,
+    theme: 'grid',
+    headStyles: { fillColor: [34, 139, 34] },
+    styles: { halign: 'center' },
+  });
+  
+  // Footer
+  const footerY = doc.internal.pageSize.getHeight() - 20;
+  doc.setFontSize(10);
+  doc.setTextColor(128, 128, 128);
+  doc.text(`Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")}`, pageWidth / 2, footerY, { align: "center" });
+  doc.text("🌳 Thank you for making a difference!", pageWidth / 2, footerY + 6, { align: "center" });
+  
+  // Save
+  const filename = `environmental-impact-${periodType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+  doc.save(filename);
+  toast.success("Report downloaded successfully!");
+};
+
 export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
   const [activePeriod, setActivePeriod] = useState<PeriodType>('weekly');
+  const [showCharts, setShowCharts] = useState(false);
   const [weeklyStats, setWeeklyStats] = useState<PeriodStats | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<PeriodStats | null>(null);
   const [yearlyStats, setYearlyStats] = useState<PeriodStats | null>(null);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [dateRanges, setDateRanges] = useState({
     weekly: { start: new Date(), end: new Date() },
     monthly: { start: new Date(), end: new Date() },
@@ -179,7 +423,6 @@ export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
       try {
         const now = new Date();
         
-        // Calculate date ranges
         const weekStart = startOfWeek(now, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
         const monthStart = startOfMonth(now);
@@ -193,7 +436,6 @@ export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
           yearly: { start: yearStart, end: yearEnd },
         });
 
-        // Fetch all stats in parallel
         const [weekly, monthly, yearly] = await Promise.all([
           fetchStats(userId, weekStart, weekEnd),
           fetchStats(userId, monthStart, monthEnd),
@@ -212,6 +454,37 @@ export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
 
     fetchAllStats();
   }, [userId]);
+
+  useEffect(() => {
+    const loadTrendData = async () => {
+      if (!userId || !showCharts) return;
+      
+      setTrendLoading(true);
+      try {
+        const data = await fetchTrendData(userId, activePeriod);
+        setTrendData(data);
+      } catch (error) {
+        console.error('Error fetching trend data:', error);
+      } finally {
+        setTrendLoading(false);
+      }
+    };
+
+    loadTrendData();
+  }, [userId, activePeriod, showCharts]);
+
+  const handleExportPDF = () => {
+    const currentStats = activePeriod === 'weekly' ? weeklyStats 
+      : activePeriod === 'monthly' ? monthlyStats 
+      : yearlyStats;
+    
+    if (!currentStats) {
+      toast.error("No data available to export");
+      return;
+    }
+    
+    generatePDF(currentStats, trendData, activePeriod, dateRanges[activePeriod]);
+  };
 
   if (loading) {
     return (
@@ -260,9 +533,29 @@ export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
             <ActiveIcon className="h-5 w-5" />
             Activity Summary
           </CardTitle>
-          <Badge variant="outline" className="text-xs">
-            {getPeriodLabel(activePeriod)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {getPeriodLabel(activePeriod)}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCharts(!showCharts)}
+              className="gap-1"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">{showCharts ? "Hide" : "Show"} Charts</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              className="gap-1"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export PDF</span>
+            </Button>
+          </div>
         </div>
         <CardDescription>
           Your activity and environmental impact
@@ -300,6 +593,24 @@ export const ActivitySummary = ({ userId }: ActivitySummaryProps) => {
             {yearlyStats && <StatGrid stats={yearlyStats} />}
           </TabsContent>
         </Tabs>
+
+        {/* Trend Charts Section */}
+        {showCharts && (
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Progress Trends
+            </h3>
+            {trendLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            ) : (
+              <TrendChart data={trendData} periodType={activePeriod} />
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
