@@ -14,6 +14,7 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { NotificationHistory } from "@/components/NotificationHistory";
 import { ActivitySummary } from "@/components/ActivitySummary";
 import { GoalSetting } from "@/components/GoalSetting";
+import { GoalLeaderboard } from "@/components/GoalLeaderboard";
 import { ShareableImpactCard } from "@/components/ShareableImpactCard";
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
@@ -240,6 +241,7 @@ const Profile = () => {
               {userId && (
                 <>
                   <GoalSetting userId={userId} />
+                  <GoalLeaderboard currentUserId={userId} />
                   <ActivitySummary userId={userId} />
                   <ShareableImpactCard userId={userId} />
                   <NotificationHistory userId={userId} />

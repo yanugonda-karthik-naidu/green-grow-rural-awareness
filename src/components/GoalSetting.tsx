@@ -68,6 +68,107 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
     }
   };
 
+  const checkAndAwardBadges = async (isNewCompletion: boolean) => {
+    if (!userId || !isNewCompletion) return;
+
+    // Check for "Goal Crusher" badge (first goal completed)
+    const { data: existingCrusherBadge } = await supabase
+      .from('user_badges')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('badge_name', 'Goal Crusher')
+      .single();
+
+    if (!existingCrusherBadge) {
+      await supabase.from('user_badges').insert({
+        user_id: userId,
+        badge_name: 'Goal Crusher',
+      });
+      await supabase.from('user_notifications').insert({
+        user_id: userId,
+        title: '🎯 New Badge: Goal Crusher!',
+        message: 'You completed your first monthly goal! Keep up the great work!',
+        notification_type: 'achievement',
+      });
+      toast.success("🎯 Badge earned: Goal Crusher!");
+    }
+
+    // Check for "Consistent Planter" badge (3 months streak)
+    const { data: allCompletedGoals } = await supabase
+      .from('user_goals')
+      .select('month')
+      .eq('user_id', userId)
+      .eq('is_completed', true)
+      .order('month', { ascending: false });
+
+    if (allCompletedGoals && allCompletedGoals.length >= 3) {
+      // Check for consecutive months
+      const now = new Date();
+      let streak = 0;
+      let expectedMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      for (const goal of allCompletedGoals) {
+        const monthDate = new Date(goal.month);
+        const expectedStr = format(expectedMonth, 'yyyy-MM-dd');
+        const monthStr = format(monthDate, 'yyyy-MM-dd');
+
+        if (monthStr === expectedStr) {
+          streak++;
+          expectedMonth.setMonth(expectedMonth.getMonth() - 1);
+        } else {
+          break;
+        }
+      }
+
+      if (streak >= 3) {
+        const { data: existingStreakBadge } = await supabase
+          .from('user_badges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('badge_name', 'Consistent Planter')
+          .single();
+
+        if (!existingStreakBadge) {
+          await supabase.from('user_badges').insert({
+            user_id: userId,
+            badge_name: 'Consistent Planter',
+          });
+          await supabase.from('user_notifications').insert({
+            user_id: userId,
+            title: '🔥 New Badge: Consistent Planter!',
+            message: 'Amazing! You completed your goals 3 months in a row!',
+            notification_type: 'achievement',
+          });
+          toast.success("🔥 Badge earned: Consistent Planter!");
+        }
+      }
+
+      // Check for "Goal Champion" (6 months streak)
+      if (streak >= 6) {
+        const { data: existingChampionBadge } = await supabase
+          .from('user_badges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('badge_name', 'Goal Champion')
+          .single();
+
+        if (!existingChampionBadge) {
+          await supabase.from('user_badges').insert({
+            user_id: userId,
+            badge_name: 'Goal Champion',
+          });
+          await supabase.from('user_notifications').insert({
+            user_id: userId,
+            title: '👑 New Badge: Goal Champion!',
+            message: 'Incredible! 6 months of consistent goal completion!',
+            notification_type: 'achievement',
+          });
+          toast.success("👑 Badge earned: Goal Champion!");
+        }
+      }
+    }
+  };
+
   const updateGoalProgress = async () => {
     if (!userId) return;
 
@@ -94,6 +195,7 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
 
     if (existingGoals && existingGoals.length > 0) {
       const goal = existingGoals[0];
+      const wasCompleted = goal.is_completed;
       const isCompleted = treesCount >= goal.target_value;
 
       await supabase
@@ -103,6 +205,11 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
           is_completed: isCompleted
         })
         .eq('id', goal.id);
+
+      // Award badges if goal was just completed
+      if (isCompleted && !wasCompleted) {
+        await checkAndAwardBadges(true);
+      }
     }
 
     fetchGoals();
