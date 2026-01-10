@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDiseaseHistory } from "@/hooks/useDiseaseHistory";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -49,6 +50,8 @@ export const VoiceAssistant = ({ language, t, context = '' }: VoiceAssistantProp
   const [isTyping, setIsTyping] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'chat' | 'disease'>('chat');
+  const [userId, setUserId] = useState<string | null>(null);
+  const { saveDiagnosis, extractDiseaseInfo } = useDiseaseHistory();
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'assistant', 
@@ -66,6 +69,13 @@ export const VoiceAssistant = ({ language, t, context = '' }: VoiceAssistantProp
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -203,6 +213,22 @@ export const VoiceAssistant = ({ language, t, context = '' }: VoiceAssistantProp
       const reply = data.reply || (language === 'en' ? "I'm here to help you! 🌱" : language === 'te' ? "నేను మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను! 🌱" : "मैं आपकी मदद के लिए यहाँ हूँ! 🌱");
       setMessages(prev => [...prev, { role: 'assistant', content: reply, type: messageType }]);
       speak(reply);
+      
+      // Save disease diagnosis if in disease mode with image
+      if (diseaseMode && imageData && userId) {
+        const diseaseInfo = extractDiseaseInfo(reply);
+        await saveDiagnosis({
+          userId,
+          plantName: userMessage?.split(' ').slice(0, 3).join(' ') || "Unknown Plant",
+          diseaseName: diseaseInfo.diseaseName,
+          symptoms: diseaseInfo.symptoms,
+          diagnosis: reply,
+          severity: diseaseInfo.severity,
+          treatment: diseaseInfo.treatment,
+          imageUrl: imageData,
+        });
+        toast.success(language === 'en' ? "Diagnosis saved to history!" : "నిర్ధారణ చరిత్రకు సేవ్ చేయబడింది!");
+      }
       
       if (imageData) {
         setSelectedImage(null);

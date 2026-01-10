@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, MapPin, Mail, Phone, Loader2, ArrowLeft, ShoppingBag, Settings, Bell, History } from "lucide-react";
+import { User, MapPin, Mail, Phone, Loader2, ArrowLeft, ShoppingBag, Settings, Bell, History, Stethoscope } from "lucide-react";
 import { z } from "zod";
 import { PurchasedItems } from "@/components/PurchasedItems";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
@@ -17,6 +17,8 @@ import { GoalSetting } from "@/components/GoalSetting";
 import { GoalLeaderboard } from "@/components/GoalLeaderboard";
 import { BadgeShowcase } from "@/components/BadgeShowcase";
 import { ShareableImpactCard } from "@/components/ShareableImpactCard";
+import { DiseaseHistoryLog } from "@/components/DiseaseHistoryLog";
+import { PlantCareReminders } from "@/components/PlantCareReminders";
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
 
@@ -121,7 +123,7 @@ const Profile = () => {
           </div>
 
           <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Account</span>
@@ -129,6 +131,10 @@ const Profile = () => {
               <TabsTrigger value="notifications" className="gap-2">
                 <Bell className="h-4 w-4" />
                 <span className="hidden sm:inline">Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="plant-care" className="gap-2">
+                <Stethoscope className="h-4 w-4" />
+                <span className="hidden sm:inline">Plant Care</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
                 <History className="h-4 w-4" />
@@ -236,6 +242,15 @@ const Profile = () => {
 
             <TabsContent value="notifications">
               {userId && <NotificationPreferences userId={userId} />}
+            </TabsContent>
+
+            <TabsContent value="plant-care" className="space-y-6">
+              {userId && (
+                <>
+                  <PlantCareReminders userId={userId} language="en" />
+                  <DiseaseHistoryLog userId={userId} language="en" />
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="history" className="space-y-6">
