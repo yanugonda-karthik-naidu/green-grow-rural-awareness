@@ -185,6 +185,57 @@ export type Database = {
         }
         Relationships: []
       }
+      disease_diagnoses: {
+        Row: {
+          created_at: string
+          diagnosis: string
+          disease_name: string | null
+          id: string
+          image_url: string | null
+          is_resolved: boolean | null
+          notes: string | null
+          plant_name: string
+          resolved_at: string | null
+          severity: string | null
+          symptoms: string | null
+          treatment: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          diagnosis: string
+          disease_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_resolved?: boolean | null
+          notes?: string | null
+          plant_name: string
+          resolved_at?: string | null
+          severity?: string | null
+          symptoms?: string | null
+          treatment?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          diagnosis?: string
+          disease_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_resolved?: boolean | null
+          notes?: string | null
+          plant_name?: string
+          resolved_at?: string | null
+          severity?: string | null
+          symptoms?: string | null
+          treatment?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       location_stats: {
         Row: {
           id: string
@@ -270,6 +321,51 @@ export type Database = {
           sound_enabled?: boolean | null
           sound_type?: string | null
           streak_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plant_care_reminders: {
+        Row: {
+          created_at: string
+          frequency_days: number
+          id: string
+          is_active: boolean | null
+          last_completed_at: string | null
+          next_due_at: string
+          notes: string | null
+          plant_id: string | null
+          plant_name: string
+          reminder_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          last_completed_at?: string | null
+          next_due_at?: string
+          notes?: string | null
+          plant_id?: string | null
+          plant_name: string
+          reminder_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          last_completed_at?: string | null
+          next_due_at?: string
+          notes?: string | null
+          plant_id?: string | null
+          plant_name?: string
+          reminder_type?: string
           updated_at?: string
           user_id?: string
         }
