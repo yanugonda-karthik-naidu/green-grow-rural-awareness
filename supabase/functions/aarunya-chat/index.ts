@@ -12,14 +12,48 @@ serve(async (req) => {
   }
 
   try {
-    const { message, language = 'en', context = '', imageData = null } = await req.json();
+    const { message, language = 'en', context = '', imageData = null, diseaseMode = false } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are Aarunya, a friendly and expert eco-assistant for GreenGrow - a digital plantation awareness platform. 
+    // Different system prompts based on mode
+    const diseaseSystemPrompt = `You are Aarunya, an expert plant pathologist and disease detection AI for GreenGrow - a digital plantation awareness platform.
+
+Your personality:
+- Professional yet friendly and reassuring
+- Use clear, actionable language
+- Include relevant emojis: 🔬 🌿 💊 🩺 ⚠️ ✅ 🌱
+- Be educational and thorough
+
+Your expertise in plant disease detection:
+- Identifying plant diseases from visual symptoms (leaf spots, discoloration, wilting, fungal growth)
+- Common plant diseases: powdery mildew, leaf blight, rust, bacterial spots, root rot, mosaic virus
+- Pest identification: aphids, mealybugs, spider mites, caterpillars, scale insects
+- Nutrient deficiencies: nitrogen (yellowing), phosphorus (purple leaves), potassium (brown edges)
+- Environmental stress: sunburn, overwatering, underwatering, cold damage
+
+When analyzing disease images:
+1. IDENTIFY: Name the disease/pest/issue if visible
+2. SYMPTOMS: List the visible symptoms you can see
+3. CAUSE: Explain what causes this problem
+4. SEVERITY: Rate as mild/moderate/severe
+5. TREATMENT: Provide specific treatment steps
+6. PREVENTION: How to prevent recurrence
+7. URGENCY: Indicate if immediate action is needed
+
+Response style for language "${language}":
+${language === 'te' ? '- Respond in Telugu when appropriate' : ''}
+${language === 'hi' ? '- Respond in Hindi when appropriate' : ''}
+${language === 'en' ? '- Respond in English' : ''}
+- Structure responses clearly with sections
+- Give specific product/treatment recommendations when possible
+- Include organic/natural treatment options
+- Mention when professional help might be needed`;
+
+    const generalSystemPrompt = `You are Aarunya, a friendly and expert eco-assistant for GreenGrow - a digital plantation awareness platform. 
 
 Your personality:
 - Warm, encouraging, and nature-loving
@@ -64,6 +98,8 @@ Context: ${context}
 
 Always be supportive, educational, and motivational. Help users understand why trees matter for humans and the atmosphere. When giving care tips, be specific about frequency, amounts, and timing.`;
 
+    const systemPrompt = diseaseMode ? diseaseSystemPrompt : generalSystemPrompt;
+
     // Build messages array with optional image
     const messages: any[] = [
       { role: "system", content: systemPrompt }
@@ -71,12 +107,16 @@ Always be supportive, educational, and motivational. Help users understand why t
 
     if (imageData) {
       // Multimodal message with image
+      const defaultImagePrompt = diseaseMode
+        ? "Please analyze this plant image for any diseases, pests, nutrient deficiencies, or health issues. Provide a detailed diagnosis with treatment recommendations."
+        : "Please analyze this image and tell me about this tree/plant. Identify the species if possible, assess its health, and provide care suggestions.";
+      
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: message || "Please analyze this image and tell me about this tree/plant. Identify the species if possible, assess its health, and provide care suggestions."
+            text: message || defaultImagePrompt
           },
           {
             type: "image_url",
@@ -124,7 +164,7 @@ Always be supportive, educational, and motivational. Help users understand why t
     }
 
     const data = await response.json();
-    const reply = data.choices[0]?.message?.content || "I'm here to help you plant trees! 🌱";
+    const reply = data.choices[0]?.message?.content || "I'm here to help you! 🌱";
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
