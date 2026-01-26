@@ -19,6 +19,7 @@ import { BadgeShowcase } from "@/components/BadgeShowcase";
 import { ShareableImpactCard } from "@/components/ShareableImpactCard";
 import { DiseaseHistoryLog } from "@/components/DiseaseHistoryLog";
 import { PlantCareReminders } from "@/components/PlantCareReminders";
+import { PlantHealthTimeline } from "@/components/PlantHealthTimeline";
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
 
@@ -247,6 +248,7 @@ const Profile = () => {
             <TabsContent value="plant-care" className="space-y-6">
               {userId && (
                 <>
+                  <PlantHealthTimeline userId={userId} language="en" />
                   <PlantCareReminders userId={userId} language="en" />
                   <DiseaseHistoryLog userId={userId} language="en" />
                 </>
