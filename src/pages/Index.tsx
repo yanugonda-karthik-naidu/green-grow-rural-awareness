@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell, BellRing } from "lucide-react";
+import { TreeDeciduous, BarChart3, BookOpen, GamepadIcon, Mic, Users, Library, Trophy, Gamepad2, LogOut, Loader2, User as UserIcon, Leaf, Sparkles, Flame, ShoppingBag, Bell, BellRing, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { useRealtimeProgress } from "@/hooks/useRealtimeProgress";
@@ -28,6 +28,13 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { DailyChallenges } from "@/components/DailyChallenges";
 import { RewardsShop } from "@/components/RewardsShop";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
+import { DiseaseHistoryLog } from "@/components/DiseaseHistoryLog";
+import { PlantCareReminders } from "@/components/PlantCareReminders";
+import { PlantHealthTimeline } from "@/components/PlantHealthTimeline";
+import { PlantHealthAlerts } from "@/components/PlantHealthAlerts";
+import { TreatmentRecommendations } from "@/components/TreatmentRecommendations";
+import { PlantCommunityTips } from "@/components/PlantCommunityTips";
+import { SeasonalCareCalendar } from "@/components/SeasonalCareCalendar";
 import heroImage from "@/assets/hero-forest.jpg";
 import confetti from "canvas-confetti";
 
@@ -220,6 +227,7 @@ const Index = () => {
     { id: 'achievements', label: t.achievements, icon: Trophy },
     { id: 'challenges', label: 'Challenges', icon: Flame },
     { id: 'shop', label: 'Shop', icon: ShoppingBag },
+    { id: 'plant-care', label: 'Plant Care', icon: Stethoscope },
     { id: 'library', label: t.treeLibrary, icon: Library },
     { id: 'learn', label: t.learnGrow, icon: BookOpen },
     { id: 'quiz', label: t.quiz, icon: GamepadIcon },
@@ -381,7 +389,7 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="plant" className="space-y-6">
-        <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-11 gap-2 h-auto p-2 bg-card">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-12 gap-2 h-auto p-2 bg-card">
             {navItems.map((item) => (
               <TabsTrigger
                 key={item.id}
@@ -466,6 +474,20 @@ const Index = () => {
                 await refetch();
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="plant-care" className="space-y-6">
+            <PlantHealthAlerts userId={user?.id} />
+            <div className="grid md:grid-cols-2 gap-6">
+              <PlantHealthTimeline userId={user?.id} language={currentLanguage} />
+              <TreatmentRecommendations userId={user?.id} />
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <SeasonalCareCalendar userId={user?.id} language={currentLanguage} />
+              <PlantCommunityTips userId={user?.id} language={currentLanguage} />
+            </div>
+            <PlantCareReminders userId={user?.id} language={currentLanguage} />
+            <DiseaseHistoryLog userId={user?.id} language={currentLanguage} />
           </TabsContent>
 
           <TabsContent value="library">
