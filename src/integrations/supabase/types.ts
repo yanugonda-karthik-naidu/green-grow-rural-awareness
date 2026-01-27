@@ -588,6 +588,71 @@ export type Database = {
         }
         Relationships: []
       }
+      treatment_tip_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          tip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_tip_votes_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_tips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_tips: {
+        Row: {
+          created_at: string
+          disease_name: string
+          helpful_count: number | null
+          id: string
+          plant_name: string
+          success_rate: string | null
+          treatment: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disease_name: string
+          helpful_count?: number | null
+          id?: string
+          plant_name: string
+          success_rate?: string | null
+          treatment: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disease_name?: string
+          helpful_count?: number | null
+          id?: string
+          plant_name?: string
+          success_rate?: string | null
+          treatment?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_name: string
