@@ -22,6 +22,8 @@ import { PlantCareReminders } from "@/components/PlantCareReminders";
 import { PlantHealthTimeline } from "@/components/PlantHealthTimeline";
 import { PlantHealthAlerts } from "@/components/PlantHealthAlerts";
 import { TreatmentRecommendations } from "@/components/TreatmentRecommendations";
+import { PlantCommunityTips } from "@/components/PlantCommunityTips";
+import { SeasonalCareCalendar } from "@/components/SeasonalCareCalendar";
 const nameSchema = z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters");
 const locationSchema = z.string().trim().min(2, "Location must be at least 2 characters").max(200, "Location must be less than 200 characters");
 
@@ -254,6 +256,10 @@ const Profile = () => {
                   <div className="grid md:grid-cols-2 gap-6">
                     <PlantHealthTimeline userId={userId} language="en" />
                     <TreatmentRecommendations userId={userId} />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <SeasonalCareCalendar userId={userId} language="en" />
+                    <PlantCommunityTips userId={userId} language="en" />
                   </div>
                   <PlantCareReminders userId={userId} language="en" />
                   <DiseaseHistoryLog userId={userId} language="en" />
