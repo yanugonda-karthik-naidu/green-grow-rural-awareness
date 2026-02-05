@@ -18,7 +18,7 @@ import { PlantTree } from "@/components/PlantTree";
 import { ImpactCounter } from "@/components/ImpactCounter";
 import { AchievementsDashboard } from "@/components/AchievementsDashboard";
 import { TreeLibraryExpanded } from "@/components/TreeLibraryExpanded";
-import { Quiz } from "@/components/Quiz";
+import { AdvancedQuiz } from "@/components/AdvancedQuiz";
 import { MiniGamesExpanded } from "@/components/MiniGamesExpanded";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall as CommunityWallUpdated } from "@/components/CommunityWallUpdated";
@@ -499,39 +499,23 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="quiz">
-            <Quiz 
+            <AdvancedQuiz 
               language={currentLanguage} 
               t={t} 
               onQuizComplete={async (score) => {
-                // Calculate seeds based on quiz score
-                const seedsEarned = Math.max(5, Math.floor(score * 2)); // Minimum 5 seeds, 2 seeds per point
-                
-                // Update user stats for challenges
+                const seedsEarned = Math.max(5, Math.floor(score / 5));
                 setUserStats(prev => ({
                   ...prev,
                   quizScoreToday: Math.max(prev.quizScoreToday, score),
                   quizzesThisWeek: prev.quizzesThisWeek + 1
                 }));
-                
-                // Update database with seeds
                 await dbUpdateProgress({ 
                   seed_points: (progress.seed_points || 0) + seedsEarned 
                 });
-                
-                // Log achievement
                 await addAchievement(`Quiz completed with score ${score}`, seedsEarned);
-                
-                // Bonus: if high score, also count as tree planting
-                if (score >= 25) {
-                  await updateProgress({ treesPlanted: 1, co2Reduced: 5, oxygenGenerated: 50, wildlifeSheltered: 1 });
-                }
-                
-                // Trigger confetti for good scores
-                if (score >= 15) {
+                if (score >= 50) {
                   confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
                 }
-                
-                // Refresh data
                 await refetch();
               }}
             />
