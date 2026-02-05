@@ -246,10 +246,10 @@ const Auth = () => {
             <CardDescription>Sign up or log in to start your eco journey</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="email-login" className="w-full">
+            <Tabs defaultValue="phone-login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="email-login">Email Login</TabsTrigger>
                 <TabsTrigger value="phone-login">Phone Login</TabsTrigger>
+                <TabsTrigger value="email-login">Email Login</TabsTrigger>
               </TabsList>
 
               <TabsContent value="email-login">
