@@ -964,15 +964,208 @@ export interface QuizProgress {
   lastAttemptDate: string;
 }
 
+export interface DailyQuizChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'complete_quiz' | 'perfect_score' | 'complete_topic' | 'streak' | 'speed_run';
+  target: number;
+  reward: number;
+  icon: string;
+}
+
+export interface DailyQuizProgress {
+  date: string; // YYYY-MM-DD
+  quizzesCompleted: number;
+  perfectScores: number;
+  topicsAttempted: string[];
+  challengesCompleted: string[];
+  totalPointsToday: number;
+}
+
 export interface UserQuizProgress {
   topics: { [topicId: string]: { [levelId: string]: QuizProgress } };
   totalScore: number;
   completedQuizzes: number;
+  perfectScores: number;
+  quizStreak: number;
+  lastQuizDate: string;
+  longestStreak: number;
+  earnedBadges: string[];
+  dailyProgress: DailyQuizProgress;
 }
+
+// Quiz Badge Definitions
+export interface QuizBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  condition: (progress: UserQuizProgress) => boolean;
+}
+
+export const quizBadges: QuizBadge[] = [
+  {
+    id: 'first_quiz',
+    name: 'Quiz Beginner',
+    description: 'Complete your first quiz',
+    icon: '🎓',
+    condition: (p) => p.completedQuizzes >= 1,
+  },
+  {
+    id: 'quiz_explorer',
+    name: 'Quiz Explorer',
+    description: 'Complete 5 quizzes',
+    icon: '🔍',
+    condition: (p) => p.completedQuizzes >= 5,
+  },
+  {
+    id: 'quiz_master',
+    name: 'Quiz Master',
+    description: 'Complete 15 quizzes',
+    icon: '🏅',
+    condition: (p) => p.completedQuizzes >= 15,
+  },
+  {
+    id: 'perfect_score',
+    name: 'Perfect Score',
+    description: 'Get 100% on any quiz',
+    icon: '💯',
+    condition: (p) => p.perfectScores >= 1,
+  },
+  {
+    id: 'perfectionist',
+    name: 'Perfectionist',
+    description: 'Get 5 perfect scores',
+    icon: '⭐',
+    condition: (p) => p.perfectScores >= 5,
+  },
+  {
+    id: 'topic_master_plantation',
+    name: 'Plantation Expert',
+    description: 'Complete all Plantation levels',
+    icon: '🌳',
+    condition: (p) => {
+      const topic = p.topics['plantation'];
+      if (!topic) return false;
+      return Object.values(topic).filter(l => l.completed).length >= 3;
+    },
+  },
+  {
+    id: 'topic_master_water',
+    name: 'Water Guru',
+    description: 'Complete all Water Conservation levels',
+    icon: '💧',
+    condition: (p) => {
+      const topic = p.topics['water-conservation'];
+      if (!topic) return false;
+      return Object.values(topic).filter(l => l.completed).length >= 3;
+    },
+  },
+  {
+    id: 'topic_master_climate',
+    name: 'Climate Champion',
+    description: 'Complete all Climate Awareness levels',
+    icon: '🌍',
+    condition: (p) => {
+      const topic = p.topics['climate-awareness'];
+      if (!topic) return false;
+      return Object.values(topic).filter(l => l.completed).length >= 3;
+    },
+  },
+  {
+    id: 'all_topics',
+    name: 'Knowledge King',
+    description: 'Complete all levels in all topics',
+    icon: '👑',
+    condition: (p) => {
+      return quizTopics.every(topic => {
+        const topicProgress = p.topics[topic.id];
+        if (!topicProgress) return false;
+        return topic.levels.every(level => topicProgress[level.id]?.completed);
+      });
+    },
+  },
+  {
+    id: 'streak_3',
+    name: 'On Fire',
+    description: '3-day quiz streak',
+    icon: '🔥',
+    condition: (p) => p.quizStreak >= 3,
+  },
+  {
+    id: 'streak_7',
+    name: 'Week Warrior',
+    description: '7-day quiz streak',
+    icon: '⚡',
+    condition: (p) => p.quizStreak >= 7,
+  },
+  {
+    id: 'streak_30',
+    name: 'Monthly Legend',
+    description: '30-day quiz streak',
+    icon: '🏆',
+    condition: (p) => p.longestStreak >= 30,
+  },
+  {
+    id: 'points_500',
+    name: 'Point Collector',
+    description: 'Earn 500 total quiz points',
+    icon: '💎',
+    condition: (p) => p.totalScore >= 500,
+  },
+  {
+    id: 'points_2000',
+    name: 'Point Legend',
+    description: 'Earn 2000 total quiz points',
+    icon: '🌟',
+    condition: (p) => p.totalScore >= 2000,
+  },
+];
+
+// Daily quiz challenges (rotate based on day)
+export const dailyQuizChallenges: DailyQuizChallenge[] = [
+  { id: 'dq1', title: 'Quick Learner', description: 'Complete 1 quiz today', type: 'complete_quiz', target: 1, reward: 10, icon: '📝' },
+  { id: 'dq2', title: 'Quiz Champion', description: 'Complete 3 quizzes today', type: 'complete_quiz', target: 3, reward: 25, icon: '🏆' },
+  { id: 'dq3', title: 'Perfect Run', description: 'Get a perfect score on any quiz', type: 'perfect_score', target: 1, reward: 30, icon: '💯' },
+  { id: 'dq4', title: 'Topic Explorer', description: 'Attempt 2 different topics today', type: 'complete_topic', target: 2, reward: 20, icon: '🔍' },
+  { id: 'dq5', title: 'Streak Builder', description: 'Maintain your daily streak', type: 'streak', target: 1, reward: 15, icon: '🔥' },
+];
+
+export const getTodaysChallenges = (): DailyQuizChallenge[] => {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  // Pick 3 challenges that rotate daily
+  const indices = [
+    dayOfYear % dailyQuizChallenges.length,
+    (dayOfYear + 1) % dailyQuizChallenges.length,
+    (dayOfYear + 2) % dailyQuizChallenges.length,
+  ];
+  // Deduplicate
+  const unique = [...new Set(indices)];
+  return unique.map(i => dailyQuizChallenges[i]);
+};
+
+export const getTodayString = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
 
 // Default progress structure
 export const getDefaultProgress = (): UserQuizProgress => ({
   topics: {},
   totalScore: 0,
-  completedQuizzes: 0
+  completedQuizzes: 0,
+  perfectScores: 0,
+  quizStreak: 0,
+  lastQuizDate: '',
+  longestStreak: 0,
+  earnedBadges: [],
+  dailyProgress: {
+    date: getTodayString(),
+    quizzesCompleted: 0,
+    perfectScores: 0,
+    topicsAttempted: [],
+    challengesCompleted: [],
+    totalPointsToday: 0,
+  },
 });
