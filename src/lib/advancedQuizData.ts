@@ -42,8 +42,10 @@ export interface QuizTopic {
   levels: QuizLevel[];
 }
 
+import { extraQuizTopics } from './quizTopicsExtra';
+
 // Quiz Topics Data
-export const quizTopics: QuizTopic[] = [
+const baseQuizTopics: QuizTopic[] = [
   {
     id: 'plantation',
     name: { en: 'Plantation & Trees', te: 'మొక్కల సాగు & చెట్లు', hi: 'वृक्षारोपण और पेड़' },
