@@ -13,8 +13,10 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { 
   quizTopics, QuizTopic, QuizLevel, QuizQuestion, 
-  UserQuizProgress, getDefaultProgress 
+  UserQuizProgress, getDefaultProgress, quizBadges, getTodayString
 } from "@/lib/advancedQuizData";
+import { QuizBadges } from "./QuizBadges";
+import { DailyQuizChallenges } from "./DailyQuizChallenges";
 
 interface AdvancedQuizProps {
   language: string;
@@ -52,6 +54,80 @@ export const AdvancedQuiz = ({ language, t, onQuizComplete }: AdvancedQuizProps)
   const saveProgress = (progress: UserQuizProgress) => {
     localStorage.setItem('advancedQuizProgress', JSON.stringify(progress));
     setUserProgress(progress);
+  };
+
+  // Check and award new badges
+  const checkBadges = (progress: UserQuizProgress): string[] => {
+    const newBadges: string[] = [];
+    for (const badge of quizBadges) {
+      if (!progress.earnedBadges.includes(badge.id) && badge.condition(progress)) {
+        newBadges.push(badge.id);
+      }
+    }
+    return newBadges;
+  };
+
+  // Update streak
+  const updateStreak = (progress: UserQuizProgress): UserQuizProgress => {
+    const today = getTodayString();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (progress.lastQuizDate === today) return progress; // Already updated today
+    
+    let newStreak = progress.quizStreak;
+    if (progress.lastQuizDate === yesterdayStr) {
+      newStreak += 1;
+    } else if (progress.lastQuizDate !== today) {
+      newStreak = 1; // Reset streak
+    }
+
+    return {
+      ...progress,
+      quizStreak: newStreak,
+      longestStreak: Math.max(progress.longestStreak, newStreak),
+      lastQuizDate: today,
+    };
+  };
+
+  // Ensure daily progress is for today
+  const ensureTodayProgress = (progress: UserQuizProgress): UserQuizProgress => {
+    const today = getTodayString();
+    if (progress.dailyProgress.date !== today) {
+      return {
+        ...progress,
+        dailyProgress: {
+          date: today,
+          quizzesCompleted: 0,
+          perfectScores: 0,
+          topicsAttempted: [],
+          challengesCompleted: [],
+          totalPointsToday: 0,
+        },
+      };
+    }
+    return progress;
+  };
+
+  // Handle daily challenge claim
+  const handleDailyChallengeReward = (challengeId: string, reward: number) => {
+    const updated = ensureTodayProgress({ ...userProgress });
+    if (updated.dailyProgress.challengesCompleted.includes(challengeId)) return;
+    
+    updated.dailyProgress.challengesCompleted.push(challengeId);
+    updated.dailyProgress.totalPointsToday += reward;
+    updated.totalScore += reward;
+    
+    const newBadges = checkBadges(updated);
+    if (newBadges.length > 0) {
+      updated.earnedBadges = [...updated.earnedBadges, ...newBadges];
+      const badgeNames = newBadges.map(id => quizBadges.find(b => b.id === id)?.name).filter(Boolean);
+      toast.success(`🏅 New badge: ${badgeNames.join(', ')}!`);
+    }
+    
+    saveProgress(updated);
+    onQuizComplete(reward);
   };
 
   // Timer for test mode
@@ -170,12 +246,14 @@ export const AdvancedQuiz = ({ language, t, onQuizComplete }: AdvancedQuizProps)
     const passed = percentage >= selectedLevel.requiredScore;
     
     // Update progress
-    const newProgress = { ...userProgress };
+    let newProgress = ensureTodayProgress({ ...userProgress });
+    newProgress = updateStreak(newProgress);
+    
     if (!newProgress.topics[selectedTopic.id]) {
       newProgress.topics[selectedTopic.id] = {};
     }
     
-    const currentProgress = newProgress.topics[selectedTopic.id][selectedLevel.id] || {
+    const currentLevelProgress = newProgress.topics[selectedTopic.id][selectedLevel.id] || {
       topicId: selectedTopic.id,
       levelId: selectedLevel.id,
       completed: false,
@@ -185,19 +263,44 @@ export const AdvancedQuiz = ({ language, t, onQuizComplete }: AdvancedQuizProps)
       lastAttemptDate: ''
     };
     
-    currentProgress.attempts += 1;
-    currentProgress.lastAttemptDate = new Date().toISOString();
-    if (percentage > currentProgress.bestScore) {
-      currentProgress.bestScore = percentage;
+    currentLevelProgress.attempts += 1;
+    currentLevelProgress.lastAttemptDate = new Date().toISOString();
+    if (percentage > currentLevelProgress.bestScore) {
+      currentLevelProgress.bestScore = percentage;
     }
-    if (passed && !currentProgress.completed) {
-      currentProgress.completed = true;
+    if (passed && !currentLevelProgress.completed) {
+      currentLevelProgress.completed = true;
       newProgress.completedQuizzes += 1;
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
     
-    newProgress.topics[selectedTopic.id][selectedLevel.id] = currentProgress;
+    // Track perfect scores
+    const isPerfect = wrong.length === 0;
+    if (isPerfect) {
+      newProgress.perfectScores = (newProgress.perfectScores || 0) + 1;
+      newProgress.dailyProgress.perfectScores += 1;
+    }
+    
+    // Update daily progress
+    newProgress.dailyProgress.quizzesCompleted += 1;
+    newProgress.dailyProgress.totalPointsToday += score;
+    if (!newProgress.dailyProgress.topicsAttempted.includes(selectedTopic.id)) {
+      newProgress.dailyProgress.topicsAttempted.push(selectedTopic.id);
+    }
+    
+    newProgress.topics[selectedTopic.id][selectedLevel.id] = currentLevelProgress;
     newProgress.totalScore += score;
+    
+    // Check for new badges
+    const newBadges = checkBadges(newProgress);
+    if (newBadges.length > 0) {
+      newProgress.earnedBadges = [...newProgress.earnedBadges, ...newBadges];
+      const badgeNames = newBadges.map(id => quizBadges.find(b => b.id === id)?.name).filter(Boolean);
+      setTimeout(() => {
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 } });
+        toast.success(`🏅 New Badge Earned: ${badgeNames.join(', ')}!`);
+      }, 500);
+    }
     
     saveProgress(newProgress);
     onQuizComplete(score);
@@ -261,26 +364,43 @@ export const AdvancedQuiz = ({ language, t, onQuizComplete }: AdvancedQuizProps)
         
         {/* Overall Stats */}
         <Card className="p-6 bg-gradient-to-r from-primary/10 to-secondary/10">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
             <div>
-              <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+              <Trophy className="h-7 w-7 mx-auto mb-2 text-yellow-500" />
               <p className="text-2xl font-bold">{userProgress.totalScore}</p>
-              <p className="text-sm text-muted-foreground">Total Points</p>
+              <p className="text-xs text-muted-foreground">Total Points</p>
             </div>
             <div>
-              <Star className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+              <Star className="h-7 w-7 mx-auto mb-2 text-orange-500" />
               <p className="text-2xl font-bold">{userProgress.completedQuizzes}</p>
-              <p className="text-sm text-muted-foreground">Quizzes Completed</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
             </div>
             <div>
-              <Target className="h-8 w-8 mx-auto mb-2 text-green-500" />
-              <p className="text-2xl font-bold">
-                {quizTopics.reduce((acc, t) => acc + t.levels.length, 0)}
-              </p>
-              <p className="text-sm text-muted-foreground">Total Levels</p>
+              <Sparkles className="h-7 w-7 mx-auto mb-2 text-purple-500" />
+              <p className="text-2xl font-bold">{userProgress.perfectScores || 0}</p>
+              <p className="text-xs text-muted-foreground">Perfect Scores</p>
+            </div>
+            <div>
+              <Zap className="h-7 w-7 mx-auto mb-2 text-red-500" />
+              <p className="text-2xl font-bold">{userProgress.quizStreak || 0}</p>
+              <p className="text-xs text-muted-foreground">Day Streak</p>
+            </div>
+            <div>
+              <Award className="h-7 w-7 mx-auto mb-2 text-emerald-500" />
+              <p className="text-2xl font-bold">{userProgress.earnedBadges?.length || 0}</p>
+              <p className="text-xs text-muted-foreground">Badges</p>
             </div>
           </div>
         </Card>
+
+        {/* Daily Quiz Challenges */}
+        <DailyQuizChallenges
+          userProgress={userProgress}
+          onClaimReward={handleDailyChallengeReward}
+        />
+
+        {/* Quiz Badges */}
+        <QuizBadges userProgress={userProgress} />
       </div>
     );
   }
