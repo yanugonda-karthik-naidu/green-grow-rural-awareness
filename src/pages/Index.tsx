@@ -19,7 +19,7 @@ import { ImpactCounter } from "@/components/ImpactCounter";
 import { AchievementsDashboard } from "@/components/AchievementsDashboard";
 import { TreeLibraryExpanded } from "@/components/TreeLibraryExpanded";
 import { AdvancedQuiz } from "@/components/AdvancedQuiz";
-import { MiniGamesExpanded } from "@/components/MiniGamesExpanded";
+import { EcoGameHub } from "@/components/EcoGameHub";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CommunityWall as CommunityWallUpdated } from "@/components/CommunityWallUpdated";
 import { LearnSection } from "@/components/LearnSection";
@@ -522,7 +522,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="games">
-            <MiniGamesExpanded 
+            <EcoGameHub 
               progress={progress} 
               onProgressUpdate={async (update) => {
                 // Update user stats for challenges
@@ -538,7 +538,7 @@ const Index = () => {
                 
                 // Log achievement for game completion
                 if (update.seedPoints > 0) {
-                  await addAchievement(`Earned ${update.seedPoints} seeds from mini-game`, update.seedPoints);
+                  await addAchievement(`Earned ${update.seedPoints} seeds from eco-game`, update.seedPoints);
                 }
                 
                 // Refresh data
