@@ -955,6 +955,9 @@ const baseQuizTopics: QuizTopic[] = [
   }
 ];
 
+// Merged quiz topics (base + extra)
+export const quizTopics: QuizTopic[] = [...baseQuizTopics, ...extraQuizTopics];
+
 // Quiz progress interface for localStorage
 export interface QuizProgress {
   topicId: string;
