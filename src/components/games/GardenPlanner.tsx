@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { FlowerIcon, Zap, CheckCircle, XCircle, ArrowRight, Info } from "lucide-react";
-import { gardenScenarios, cropOptions, GardenScenario } from "@/lib/ecoGameData";
+import { FlowerIcon, Zap, Trash2, Info, CheckCircle, XCircle } from "lucide-react";
+import { gardenScenarios, cropOptions } from "@/lib/ecoGameData";
 import confetti from "canvas-confetti";
 
 interface GardenPlannerProps {
@@ -12,51 +12,103 @@ interface GardenPlannerProps {
   onBack: () => void;
 }
 
+interface PlotCell {
+  crop: string | null;
+  emoji: string;
+}
+
 export const GardenPlanner = ({ onComplete, onBack }: GardenPlannerProps) => {
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
-  const [feedback, setFeedback] = useState<{ correct: string[]; wrong: string[]; missed: string[] }>({ correct: [], wrong: [], missed: [] });
+  const [grid, setGrid] = useState<PlotCell[]>(Array(9).fill(null).map(() => ({ crop: null, emoji: '' })));
+  const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'plant' | 'grow' | 'result'>('plant');
+  const [growthLevel, setGrowthLevel] = useState(0);
   const [completed, setCompleted] = useState(false);
 
   const scenario = gardenScenarios[scenarioIndex];
 
-  const toggleCrop = (cropName: string) => {
-    if (submitted) return;
-    setSelectedCrops(prev =>
-      prev.includes(cropName)
-        ? prev.filter(c => c !== cropName)
-        : prev.length < 5 ? [...prev, cropName] : prev
-    );
-  };
+  // Filter crops available for current season
+  const availableCrops = cropOptions.filter(
+    c => c.season === scenario.season || c.season === 'all'
+  );
 
-  const submitPlan = () => {
-    const correct = selectedCrops.filter(c => scenario.idealCrops.includes(c));
-    const wrong = selectedCrops.filter(c => !scenario.idealCrops.includes(c));
-    const missed = scenario.idealCrops.filter(c => !selectedCrops.includes(c));
+  // Calculate real-time compatibility for each placed crop
+  const compatibility = useMemo(() => {
+    const placed = grid.filter(cell => cell.crop).map(cell => cell.crop!);
+    const result: Record<string, { companions: string[]; conflicts: string[] }> = {};
 
-    // Check companion planting bonus
-    let companionBonus = 0;
-    selectedCrops.forEach(cropName => {
+    placed.forEach(cropName => {
       const crop = cropOptions.find(c => c.name === cropName);
-      if (crop) {
-        selectedCrops.forEach(otherCrop => {
-          if (otherCrop !== cropName && crop.companionPlants.includes(otherCrop)) {
-            companionBonus += 5;
-          }
-        });
-      }
+      if (!crop) return;
+      const companions = placed.filter(c => c !== cropName && crop.companionPlants.includes(c));
+      const conflicts = placed.filter(c => c !== cropName && crop.incompatiblePlants.includes(c));
+      result[cropName] = { companions, conflicts };
     });
 
-    const roundScore = (correct.length * 20) + companionBonus - (wrong.length * 10);
-    setScore(prev => prev + Math.max(0, roundScore));
-    setFeedback({ correct, wrong, missed });
-    setSubmitted(true);
+    return result;
+  }, [grid]);
 
-    if (correct.length >= Math.ceil(scenario.idealCrops.length / 2)) {
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+  const placedCount = grid.filter(c => c.crop).length;
+  const totalCompanions = Object.values(compatibility).reduce((sum, c) => sum + c.companions.length, 0) / 2;
+  const totalConflicts = Object.values(compatibility).reduce((sum, c) => sum + c.conflicts.length, 0) / 2;
+
+  const placeCrop = (cellIndex: number) => {
+    if (!selectedCrop || phase !== 'plant') return;
+    const crop = cropOptions.find(c => c.name === selectedCrop);
+    if (!crop) return;
+
+    // Check if already placed max of this crop
+    const alreadyPlaced = grid.filter(c => c.crop === selectedCrop).length;
+    if (alreadyPlaced >= 2) return;
+
+    setGrid(prev => {
+      const updated = [...prev];
+      updated[cellIndex] = { crop: selectedCrop, emoji: crop.emoji };
+      return updated;
+    });
+  };
+
+  const removeCrop = (cellIndex: number) => {
+    if (phase !== 'plant') return;
+    setGrid(prev => {
+      const updated = [...prev];
+      updated[cellIndex] = { crop: null, emoji: '' };
+      return updated;
+    });
+  };
+
+  const startGrowing = () => {
+    setPhase('grow');
+    // Simulate growth animation
+    let level = 0;
+    const interval = setInterval(() => {
+      level += 20;
+      setGrowthLevel(level);
+      if (level >= 100) {
+        clearInterval(interval);
+        evaluateGarden();
+      }
+    }, 400);
+  };
+
+  const evaluateGarden = () => {
+    const placed = grid.filter(c => c.crop).map(c => c.crop!);
+    const idealMatches = placed.filter(c => scenario.idealCrops.includes(c)).length;
+    
+    // Scoring
+    const matchScore = idealMatches * 15;
+    const companionScore = totalCompanions * 10;
+    const conflictPenalty = totalConflicts * 15;
+    const roundScore = Math.max(0, matchScore + companionScore - conflictPenalty);
+    
+    setScore(prev => prev + roundScore);
+    
+    if (roundScore > 30) {
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.5 }, colors: ['#10b981', '#f59e0b', '#84cc16'] });
     }
+    
+    setPhase('result');
   };
 
   const nextScenario = () => {
@@ -67,14 +119,24 @@ export const GardenPlanner = ({ onComplete, onBack }: GardenPlannerProps) => {
       setTimeout(() => onComplete(totalSeeds), 1500);
     } else {
       setScenarioIndex(prev => prev + 1);
-      setSelectedCrops([]);
-      setSubmitted(false);
-      setFeedback({ correct: [], wrong: [], missed: [] });
+      setGrid(Array(9).fill(null).map(() => ({ crop: null, emoji: '' })));
+      setSelectedCrop(null);
+      setPhase('plant');
+      setGrowthLevel(0);
     }
   };
 
   const seasonEmoji = { summer: '☀️', winter: '❄️', monsoon: '🌧️' };
-  const waterEmoji = { low: '💧', medium: '💧💧', high: '💧💧💧' };
+
+  // Get cell border color based on compatibility
+  const getCellStyle = (cell: PlotCell, index: number) => {
+    if (!cell.crop) return 'border-dashed border-muted hover:border-primary/40 hover:bg-accent/50 cursor-pointer';
+    const compat = compatibility[cell.crop];
+    if (!compat) return 'border-primary/50 bg-primary/5';
+    if (compat.conflicts.length > 0) return 'border-red-500 bg-red-500/10 animate-pulse';
+    if (compat.companions.length > 0) return 'border-green-500 bg-green-500/10';
+    return 'border-primary/50 bg-primary/5';
+  };
 
   return (
     <Card className="border-2 border-amber-500/30 shadow-xl">
@@ -82,7 +144,7 @@ export const GardenPlanner = ({ onComplete, onBack }: GardenPlannerProps) => {
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
             <FlowerIcon className="h-6 w-6 text-amber-600" />
-            Garden Planner
+            Garden Builder
           </span>
           <div className="flex gap-2">
             <Badge variant="secondary">{scenarioIndex + 1}/{gardenScenarios.length}</Badge>
@@ -91,88 +153,146 @@ export const GardenPlanner = ({ onComplete, onBack }: GardenPlannerProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-5">
-        <Progress value={((scenarioIndex + (submitted ? 1 : 0)) / gardenScenarios.length) * 100} className="h-2" />
+        <Progress value={((scenarioIndex + (phase === 'result' ? 1 : 0)) / gardenScenarios.length) * 100} className="h-2" />
 
-        {/* Scenario description */}
-        <div className="p-4 bg-gradient-to-br from-amber-500/5 to-yellow-500/5 rounded-xl border border-amber-500/20">
-          <p className="text-sm text-muted-foreground mb-3">{scenario.description}</p>
+        {/* Scenario info */}
+        <div className="p-3 bg-gradient-to-br from-amber-500/5 to-yellow-500/5 rounded-xl border border-amber-500/20">
+          <p className="text-sm text-muted-foreground mb-2">{scenario.description}</p>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{seasonEmoji[scenario.season]} {scenario.season}</Badge>
             <Badge variant="outline">🌍 {scenario.soilType}</Badge>
-            <Badge variant="outline">{scenario.sunlight === 'full' ? '☀️ Full sun' : '⛅ Partial shade'}</Badge>
-            <Badge variant="outline">{waterEmoji[scenario.waterAvailability]} {scenario.waterAvailability} water</Badge>
+            <Badge variant="outline">{scenario.sunlight === 'full' ? '☀️ Full sun' : '⛅ Partial'}</Badge>
           </div>
         </div>
 
-        <p className="font-medium text-center">Select the best crops for this garden (up to 5):</p>
-
-        {/* Crop selection grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {cropOptions.map((crop) => {
-            const isSelected = selectedCrops.includes(crop.name);
-            const isIdeal = submitted && scenario.idealCrops.includes(crop.name);
-            const isWrong = submitted && isSelected && !scenario.idealCrops.includes(crop.name);
-
-            let borderClass = isSelected ? 'border-primary bg-primary/10' : 'border-muted hover:border-primary/50';
-            if (submitted && isIdeal && isSelected) borderClass = 'border-green-500 bg-green-500/10';
-            else if (submitted && isIdeal && !isSelected) borderClass = 'border-green-500/50 bg-green-500/5';
-            else if (isWrong) borderClass = 'border-red-500 bg-red-500/10';
-
-            return (
-              <button
-                key={crop.name}
-                onClick={() => toggleCrop(crop.name)}
-                disabled={submitted}
-                className={`p-2 rounded-lg border-2 text-center transition-all ${borderClass}`}
-              >
-                <div className="text-2xl">{crop.emoji}</div>
-                <div className="text-xs font-medium mt-1">{crop.name}</div>
-                <div className="text-[10px] text-muted-foreground">{crop.season}</div>
-                {submitted && isIdeal && <CheckCircle className="h-3 w-3 text-green-500 mx-auto mt-1" />}
-                {isWrong && <XCircle className="h-3 w-3 text-red-500 mx-auto mt-1" />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Companion planting info */}
-        {selectedCrops.length >= 2 && !submitted && (
-          <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-            <p className="text-xs flex items-center gap-1"><Info className="h-3 w-3" /> Companion planting bonuses apply when you pair compatible crops!</p>
+        {/* Live compatibility stats */}
+        {placedCount > 0 && (
+          <div className="flex justify-center gap-4 text-xs">
+            <span className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3 text-green-500" />
+              {totalCompanions} companion bonus{totalCompanions !== 1 ? 'es' : ''}
+            </span>
+            {totalConflicts > 0 && (
+              <span className="flex items-center gap-1 text-red-500">
+                <XCircle className="h-3 w-3" />
+                {totalConflicts} conflict{totalConflicts !== 1 ? 's' : ''}!
+              </span>
+            )}
           </div>
         )}
 
-        {/* Feedback */}
-        {submitted && (
-          <div className="space-y-2">
-            <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-              <p className="text-sm font-medium">📖 {scenario.explanation}</p>
+        {/* Garden grid */}
+        <div className="grid grid-cols-3 gap-2 aspect-square max-w-[300px] mx-auto">
+          {grid.map((cell, index) => (
+            <button
+              key={index}
+              onClick={() => cell.crop ? removeCrop(index) : placeCrop(index)}
+              disabled={phase !== 'plant'}
+              className={`relative rounded-xl border-2 flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 ${getCellStyle(cell, index)}`}
+            >
+              {cell.crop ? (
+                <>
+                  <span className={`text-3xl ${phase === 'grow' ? 'animate-bounce' : ''}`} 
+                    style={phase === 'grow' ? { animationDelay: `${index * 100}ms` } : undefined}>
+                    {growthLevel < 30 ? '🌱' : growthLevel < 70 ? cell.emoji : `${cell.emoji}`}
+                  </span>
+                  <span className="text-[9px] font-medium mt-0.5">{cell.crop}</span>
+                  {phase === 'plant' && (
+                    <Trash2 className="absolute top-1 right-1 h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                  )}
+                </>
+              ) : (
+                <span className="text-2xl opacity-30">+</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Growth progress bar */}
+        {phase === 'grow' && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span>🌱 Growing...</span>
+              <span>{growthLevel}%</span>
             </div>
-            {feedback.correct.length > 0 && (
-              <p className="text-sm text-green-600">✅ Good picks: {feedback.correct.join(', ')}</p>
+            <Progress value={growthLevel} className="h-2" />
+          </div>
+        )}
+
+        {/* Crop picker */}
+        {phase === 'plant' && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-center">
+              {selectedCrop ? `Tap a plot to plant ${selectedCrop}` : 'Select a crop, then tap a plot'}
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {availableCrops.map(crop => {
+                const isSelected = selectedCrop === crop.name;
+                const placedOfThis = grid.filter(c => c.crop === crop.name).length;
+                
+                return (
+                  <button
+                    key={crop.name}
+                    onClick={() => setSelectedCrop(isSelected ? null : crop.name)}
+                    className={`px-3 py-2 rounded-xl border-2 text-center transition-all hover:scale-105 ${
+                      isSelected ? 'border-primary bg-primary/10 scale-105' : 'border-muted hover:border-primary/30'
+                    } ${placedOfThis >= 2 ? 'opacity-40' : ''}`}
+                  >
+                    <span className="text-xl">{crop.emoji}</span>
+                    <span className="text-[10px] block font-medium">{crop.name}</span>
+                    {placedOfThis > 0 && (
+                      <span className="text-[9px] text-muted-foreground">×{placedOfThis}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected crop info */}
+            {selectedCrop && (
+              <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20 text-center">
+                <p className="text-xs flex items-center justify-center gap-1">
+                  <Info className="h-3 w-3" />
+                  {cropOptions.find(c => c.name === selectedCrop)?.benefit}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Companions: {cropOptions.find(c => c.name === selectedCrop)?.companionPlants.join(', ')}
+                </p>
+              </div>
             )}
-            {feedback.wrong.length > 0 && (
-              <p className="text-sm text-red-600">❌ Not ideal: {feedback.wrong.join(', ')}</p>
-            )}
-            {feedback.missed.length > 0 && (
-              <p className="text-sm text-muted-foreground">💡 Also consider: {feedback.missed.join(', ')}</p>
-            )}
+          </div>
+        )}
+
+        {/* Result phase */}
+        {phase === 'result' && (
+          <div className="space-y-3">
+            <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+              <p className="text-sm font-medium mb-1">📖 {scenario.explanation}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Best crops: {scenario.idealCrops.map(c => {
+                  const crop = cropOptions.find(cr => cr.name === c);
+                  return `${crop?.emoji} ${c}`;
+                }).join(', ')}
+              </p>
+            </div>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex gap-3">
-          {!submitted ? (
-            <Button onClick={submitPlan} disabled={selectedCrops.length === 0} className="flex-1" size="lg">
-              Submit Garden Plan
-            </Button>
-          ) : (
-            <Button onClick={nextScenario} className="flex-1" size="lg">
-              {scenarioIndex + 1 >= gardenScenarios.length ? '🎉 See Results' : 'Next Scenario'}
-              <ArrowRight className="ml-2 h-4 w-4" />
+          {phase === 'plant' && (
+            <Button onClick={startGrowing} disabled={placedCount < 2} className="flex-1" size="lg">
+              🌱 {placedCount < 2 ? `Plant at least 2 crops (${placedCount}/2)` : `Grow Garden (${placedCount} crops)`}
             </Button>
           )}
-          <Button onClick={onBack} variant="outline" size="lg">Exit</Button>
+          {phase === 'result' && (
+            <Button onClick={nextScenario} className="flex-1" size="lg">
+              {scenarioIndex + 1 >= gardenScenarios.length ? '🎉 See Final Score' : '🌿 Next Garden'}
+            </Button>
+          )}
+          {phase !== 'grow' && (
+            <Button onClick={onBack} variant="outline" size="lg">Exit</Button>
+          )}
         </div>
       </CardContent>
     </Card>

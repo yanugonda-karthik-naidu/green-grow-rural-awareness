@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Gamepad2, Sprout, Stethoscope, FlowerIcon, Droplets, Shield,
-  Trophy, Star, Zap
+  Trophy, Star, Zap, Play
 } from "lucide-react";
 import { UserProgress } from "@/hooks/useUserProgress";
 import { PlantCareSimulator } from "./games/PlantCareSimulator";
@@ -12,7 +12,6 @@ import { DiseaseIdentifier } from "./games/DiseaseIdentifier";
 import { GardenPlanner } from "./games/GardenPlanner";
 import { WaterSoilBalance } from "./games/WaterSoilBalance";
 import { PestDefender } from "./games/PestDefender";
-import confetti from "canvas-confetti";
 
 interface EcoGameHubProps {
   progress: UserProgress;
@@ -30,64 +29,64 @@ interface GameDef {
   color: string;
   gradient: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  learnTopics: string[];
+  gameplayType: string;
 }
 
 const games: GameDef[] = [
   {
     id: 'plant-care',
     title: 'Plant Care Simulator',
-    description: 'Guide a plant from seed to full bloom by managing water, sunlight, and nutrients through 6 lifecycle stages.',
+    description: 'Manage water, sunlight & nutrients in real-time to grow a plant from seed to bloom.',
     icon: Sprout,
     seedReward: 'Up to 230',
     color: 'text-green-600',
     gradient: 'from-green-500/10 to-emerald-500/10',
     difficulty: 'Beginner',
-    learnTopics: ['Plant lifecycle', 'Resource management', 'Over/under watering']
+    gameplayType: '🎮 Resource Management',
   },
   {
     id: 'disease-id',
-    title: 'Disease Identifier',
-    description: 'Diagnose plant diseases from symptoms and choose the correct eco-friendly treatment for 8 common plants.',
+    title: 'Plant Doctor',
+    description: 'Examine sick plants, investigate symptoms, diagnose diseases & mix the right treatment.',
     icon: Stethoscope,
     seedReward: 'Up to 230',
     color: 'text-red-600',
     gradient: 'from-red-500/10 to-orange-500/10',
     difficulty: 'Intermediate',
-    learnTopics: ['Plant diseases', 'Organic treatments', 'Prevention methods']
+    gameplayType: '🔬 Detective Investigation',
   },
   {
     id: 'garden-plan',
-    title: 'Garden Planner',
-    description: 'Plan the perfect garden by selecting crops based on season, soil, and companion planting science.',
+    title: 'Garden Builder',
+    description: 'Place crops on a 3×3 garden grid with real-time companion planting feedback.',
     icon: FlowerIcon,
     seedReward: 'Up to 160',
     color: 'text-amber-600',
     gradient: 'from-amber-500/10 to-yellow-500/10',
     difficulty: 'Intermediate',
-    learnTopics: ['Companion planting', 'Seasonal crops', 'Soil types']
+    gameplayType: '🏗️ Strategy Builder',
   },
   {
     id: 'water-soil',
-    title: 'Water & Soil Balance',
-    description: 'Adjust soil pH, moisture, and nutrients to create the perfect growing conditions for different plants.',
+    title: 'Soil Lab',
+    description: 'Mix soil amendments to balance pH, moisture & nutrients — watch the plant react live!',
     icon: Droplets,
     seedReward: 'Up to 170',
     color: 'text-cyan-600',
     gradient: 'from-cyan-500/10 to-teal-500/10',
     difficulty: 'Advanced',
-    learnTopics: ['Soil chemistry', 'NPK nutrients', 'pH management']
+    gameplayType: '🧪 Lab Simulation',
   },
   {
     id: 'pest-defend',
     title: 'Pest Defender',
-    description: 'Defend your garden from pests using eco-friendly solutions. Choose wisely — chemicals harm the ecosystem!',
+    description: 'Click pests in real-time to defend your garden! Choose eco-friendly tools for combo bonuses.',
     icon: Shield,
     seedReward: 'Up to 200',
     color: 'text-purple-600',
     gradient: 'from-purple-500/10 to-pink-500/10',
     difficulty: 'Beginner',
-    learnTopics: ['Biological control', 'Eco pest management', 'Beneficial insects']
+    gameplayType: '⚡ Action Defense',
   },
 ];
 
@@ -123,18 +122,18 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
           <Gamepad2 className="h-10 w-10 text-green-600" />
         </div>
         <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-          🌿 Eco Learning Games
+          🎮 Interactive Eco Games
         </h2>
-        <p className="text-muted-foreground text-lg">Play, learn about plants & environment, earn seeds!</p>
+        <p className="text-muted-foreground text-lg">Hands-on games — click, mix, build, defend & earn seeds!</p>
         <div className="flex justify-center gap-4 flex-wrap">
           <Badge variant="secondary" className="text-sm px-3 py-1">
-            <Star className="h-3 w-3 mr-1" /> 5 Educational Games
+            <Play className="h-3 w-3 mr-1" /> 5 Interactive Games
           </Badge>
           <Badge variant="secondary" className="text-sm px-3 py-1">
-            <Zap className="h-3 w-3 mr-1" /> Earn Real Seed Points
+            <Zap className="h-3 w-3 mr-1" /> Real-Time Gameplay
           </Badge>
           <Badge variant="secondary" className="text-sm px-3 py-1">
-            <Trophy className="h-3 w-3 mr-1" /> Track Progress
+            <Trophy className="h-3 w-3 mr-1" /> Earn Seed Points
           </Badge>
         </div>
       </div>
@@ -152,23 +151,17 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
               <CardHeader className={`bg-gradient-to-br ${game.gradient} pb-3`}>
                 <div className="flex items-start justify-between">
                   <Icon className={`h-10 w-10 ${game.color} group-hover:scale-110 transition-transform`} />
-                  <Badge variant="outline" className={`text-[10px] ${difficultyColor[game.difficulty]}`}>
-                    {game.difficulty}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline" className={`text-[10px] ${difficultyColor[game.difficulty]}`}>
+                      {game.difficulty}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">{game.gameplayType}</span>
+                  </div>
                 </div>
                 <CardTitle className="text-lg mt-2">{game.title}</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm text-muted-foreground leading-relaxed">{game.description}</p>
-
-                {/* Learn topics */}
-                <div className="flex flex-wrap gap-1">
-                  {game.learnTopics.map((topic) => (
-                    <Badge key={topic} variant="secondary" className="text-[10px] px-2 py-0.5">
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-muted">
                   <Badge variant="secondary" className="text-xs">
@@ -176,7 +169,7 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
                     {game.seedReward} Seeds
                   </Badge>
                   <Button size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
-                    Play Now
+                    <Play className="h-3 w-3 mr-1" /> Play
                   </Button>
                 </div>
               </CardContent>
