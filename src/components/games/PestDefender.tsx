@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Shield, Zap, Bug, Leaf, Info } from "lucide-react";
+import { Shield, Zap, Leaf, Bug, Heart } from "lucide-react";
 import { pests, Pest } from "@/lib/ecoGameData";
 import confetti from "canvas-confetti";
 
@@ -14,114 +14,142 @@ interface PestDefenderProps {
 
 interface ActivePest {
   pest: Pest;
-  position: number; // 0-100, moving toward plant
+  position: number;
+  lane: number; // 0, 1, 2 (top, middle, bottom)
   id: number;
+  defeated: boolean;
+  defeatType?: 'eco' | 'chemical';
 }
 
+type DefenseTool = 'ladybug' | 'neemoil' | 'trap' | 'spray';
+
+interface ToolDef {
+  id: DefenseTool;
+  name: string;
+  emoji: string;
+  type: 'eco' | 'chemical';
+  power: number;
+  description: string;
+}
+
+const defenseTools: ToolDef[] = [
+  { id: 'ladybug', name: 'Ladybugs', emoji: '🐞', type: 'eco', power: 3, description: 'Natural predators' },
+  { id: 'neemoil', name: 'Neem Oil', emoji: '🌿', type: 'eco', power: 2, description: 'Organic repellent' },
+  { id: 'trap', name: 'Sticky Trap', emoji: '🪤', type: 'eco', power: 2, description: 'Chemical-free catch' },
+  { id: 'spray', name: 'Pesticide', emoji: '☠️', type: 'chemical', power: 4, description: 'Harms ecosystem!' },
+];
+
 export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
-  const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
+  const [ecoScore, setEcoScore] = useState(0);
   const [plantHealth, setPlantHealth] = useState(100);
   const [activePests, setActivePests] = useState<ActivePest[]>([]);
-  const [showQuestion, setShowQuestion] = useState(false);
-  const [currentPest, setCurrentPest] = useState<ActivePest | null>(null);
-  const [answered, setAnswered] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [ecoScore, setEcoScore] = useState(0); // eco-friendliness rating
+  const [selectedTool, setSelectedTool] = useState<DefenseTool>('ladybug');
   const [completed, setCompleted] = useState(false);
-  const [spawnTimer, setSpawnTimer] = useState(0);
-  const [pestQueue, setPestQueue] = useState<Pest[]>(() => [...pests].sort(() => Math.random() - 0.5));
   const [pestsDefeated, setPestsDefeated] = useState(0);
+  const [totalPests] = useState(pests.length * 2); // Each pest spawns twice
+  const [defenseLog, setDefenseLog] = useState<string[]>([]);
+  const [combo, setCombo] = useState(0);
+  const pestIdRef = useRef(0);
+  const spawnQueueRef = useRef([...pests, ...pests].sort(() => Math.random() - 0.5));
 
-  // Spawn pests
+  // Spawn pests periodically
   useEffect(() => {
-    if (completed || showQuestion) return;
+    if (completed) return;
     const timer = setInterval(() => {
-      setSpawnTimer(prev => {
-        if (prev >= 4 && pestQueue.length > 0 && activePests.length < 3) {
-          const pest = pestQueue[0];
-          setPestQueue(q => q.slice(1));
-          setActivePests(prev => [...prev, {
-            pest,
-            position: 0,
-            id: Date.now()
-          }]);
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 1000);
+      if (spawnQueueRef.current.length === 0 || activePests.filter(p => !p.defeated).length >= 4) return;
+      
+      const pest = spawnQueueRef.current.shift()!;
+      const id = ++pestIdRef.current;
+      setActivePests(prev => [...prev, {
+        pest,
+        position: 0,
+        lane: Math.floor(Math.random() * 3),
+        id,
+        defeated: false,
+      }]);
+    }, 2500);
     return () => clearInterval(timer);
-  }, [completed, showQuestion, pestQueue, activePests.length]);
+  }, [completed, activePests]);
 
-  // Move pests toward plant
+  // Move pests
   useEffect(() => {
-    if (completed || showQuestion) return;
+    if (completed) return;
     const timer = setInterval(() => {
       setActivePests(prev => {
-        const updated = prev.map(ap => ({
-          ...ap,
-          position: ap.position + ap.pest.speed
-        }));
-
-        // Check if any pest reached the plant
-        const reached = updated.filter(ap => ap.position >= 100);
+        const updated = prev.map(ap => 
+          ap.defeated ? ap : { ...ap, position: ap.position + ap.pest.speed * 1.5 }
+        );
+        
+        // Check plant damage
+        const reached = updated.filter(ap => !ap.defeated && ap.position >= 100);
         if (reached.length > 0) {
-          setPlantHealth(h => Math.max(0, h - reached.length * 15));
+          setPlantHealth(h => Math.max(0, h - reached.length * 12));
+          setCombo(0);
         }
-
-        return updated.filter(ap => ap.position < 100);
+        
+        return updated.filter(ap => ap.defeated || ap.position < 100);
       });
-    }, 500);
+    }, 400);
     return () => clearInterval(timer);
-  }, [completed, showQuestion]);
+  }, [completed]);
 
-  // Check game over
+  // Check game end
   useEffect(() => {
-    if (plantHealth <= 0 && !completed) {
+    if (completed) return;
+    if (plantHealth <= 0) {
       setCompleted(true);
       const totalSeeds = score + Math.round(ecoScore / 2);
       setTimeout(() => onComplete(totalSeeds), 1000);
     }
-    if (pestsDefeated >= pests.length && activePests.length === 0 && pestQueue.length === 0 && !completed) {
+    if (pestsDefeated >= totalPests && activePests.filter(p => !p.defeated).length === 0) {
       setCompleted(true);
       const bonus = plantHealth >= 50 ? 50 : 20;
       const totalSeeds = score + Math.round(ecoScore / 2) + bonus;
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
       setTimeout(() => onComplete(totalSeeds), 1500);
     }
-  }, [plantHealth, pestsDefeated, activePests.length, pestQueue.length, completed]);
+  }, [plantHealth, pestsDefeated, activePests, completed, totalPests]);
 
-  const interceptPest = (activePest: ActivePest) => {
-    setCurrentPest(activePest);
-    setShowQuestion(true);
-    setAnswered(false);
-  };
+  // Click pest to defend
+  const defendAgainst = useCallback((pestId: number) => {
+    if (completed) return;
+    
+    const tool = defenseTools.find(t => t.id === selectedTool)!;
+    
+    setActivePests(prev => prev.map(ap => {
+      if (ap.id !== pestId || ap.defeated) return ap;
+      return { ...ap, defeated: true, defeatType: tool.type };
+    }));
 
-  const chooseSolution = (isEcoFriendly: boolean) => {
-    if (!currentPest || answered) return;
-    setAnswered(true);
+    setPestsDefeated(p => p + 1);
 
-    if (isEcoFriendly) {
-      setScore(prev => prev + 25);
-      setEcoScore(prev => prev + 20);
-      setIsCorrect(true);
-      confetti({ particleCount: 20, spread: 40, origin: { y: 0.7 }, colors: ['#10b981', '#34d399'] });
+    if (tool.type === 'eco') {
+      const comboBonus = combo >= 3 ? 15 : combo >= 2 ? 8 : 0;
+      setScore(prev => prev + 20 + comboBonus);
+      setEcoScore(prev => prev + 15);
+      setCombo(prev => prev + 1);
+      confetti({ particleCount: 10, spread: 30, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
+      setDefenseLog(prev => [`🌿 ${tool.name} vs ${pests.find(p => p.name === activePests.find(a => a.id === pestId)?.pest.name)?.name || 'pest'}${comboBonus > 0 ? ` (+${comboBonus} combo!)` : ''}`, ...prev.slice(0, 4)]);
     } else {
       setScore(prev => prev + 10);
-      setEcoScore(prev => Math.max(0, prev - 5));
-      setIsCorrect(false);
+      setEcoScore(prev => Math.max(0, prev - 10));
+      setCombo(0);
+      setPlantHealth(prev => Math.max(0, prev - 3)); // Chemical damage to ecosystem
+      setDefenseLog(prev => [`☠️ Chemical used — ecosystem damaged!`, ...prev.slice(0, 4)]);
     }
+  }, [selectedTool, completed, combo, activePests]);
 
-    // Remove pest
-    setActivePests(prev => prev.filter(ap => ap.id !== currentPest.id));
-    setPestsDefeated(prev => prev + 1);
-  };
+  // Clean up defeated pests after animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActivePests(prev => prev.filter(ap => !ap.defeated));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [activePests.filter(p => p.defeated).length]);
 
-  const continueGame = () => {
-    setShowQuestion(false);
-    setCurrentPest(null);
-    setAnswered(false);
+  const getLaneY = (lane: number) => {
+    return lane === 0 ? '15%' : lane === 1 ? '45%' : '75%';
   };
 
   return (
@@ -133,16 +161,19 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
             Pest Defender
           </span>
           <div className="flex gap-2">
+            {combo >= 2 && <Badge className="bg-orange-500 animate-pulse">🔥 ×{combo}</Badge>}
             <Badge variant="secondary">🌿 {ecoScore}</Badge>
             <Badge variant="secondary"><Zap className="h-3 w-3 mr-1" />{score}</Badge>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-5">
-        {/* Plant health */}
+      <CardContent className="p-6 space-y-4">
+        {/* Plant health bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
-            <span>🌱 Plant Health</span>
+            <span className="flex items-center gap-1">
+              <Heart className="h-3 w-3" /> Garden Health
+            </span>
             <span className={`font-semibold ${plantHealth < 30 ? 'text-red-500' : plantHealth < 60 ? 'text-yellow-500' : 'text-green-500'}`}>
               {Math.round(plantHealth)}%
             </span>
@@ -150,104 +181,102 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
           <Progress value={plantHealth} className="h-3" />
         </div>
 
-        {/* Game area */}
-        {!showQuestion ? (
-          <div className="relative h-48 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden">
-            {/* Plant at the right */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-5xl">
-              {plantHealth > 70 ? '🌳' : plantHealth > 30 ? '🌿' : '🥀'}
-            </div>
+        {/* Defense tool selector */}
+        <div className="flex gap-2 justify-center">
+          {defenseTools.map(tool => (
+            <button
+              key={tool.id}
+              onClick={() => setSelectedTool(tool.id)}
+              className={`p-2 rounded-xl border-2 text-center transition-all hover:scale-110 active:scale-95 ${
+                selectedTool === tool.id 
+                  ? tool.type === 'eco' 
+                    ? 'border-green-500 bg-green-500/10 scale-105' 
+                    : 'border-red-500 bg-red-500/10 scale-105'
+                  : 'border-muted hover:border-primary/30'
+              }`}
+              title={tool.description}
+            >
+              <span className="text-xl">{tool.emoji}</span>
+              <span className="text-[9px] block font-medium">{tool.name}</span>
+              <span className={`text-[8px] ${tool.type === 'eco' ? 'text-green-600' : 'text-red-500'}`}>
+                {tool.type === 'eco' ? '♻️ Eco' : '⚠️ Toxic'}
+              </span>
+            </button>
+          ))}
+        </div>
 
-            {/* Pests */}
-            {activePests.map(ap => (
-              <button
-                key={ap.id}
-                onClick={() => interceptPest(ap)}
-                className="absolute top-1/2 -translate-y-1/2 text-3xl hover:scale-125 transition-transform cursor-pointer animate-pulse"
-                style={{ left: `${Math.min(ap.position, 85)}%` }}
-                title={`Click to defend against ${ap.pest.name}!`}
-              >
-                {ap.pest.emoji}
-              </button>
-            ))}
-
-            {activePests.length === 0 && pestQueue.length > 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                Pests are approaching... get ready! 🛡️
-              </div>
-            )}
-            {activePests.length === 0 && pestQueue.length === 0 && !completed && (
-              <div className="absolute inset-0 flex items-center justify-center text-green-600 font-medium">
-                All pests defeated! 🎉
-              </div>
-            )}
+        {/* Game field */}
+        <div className="relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden">
+          {/* Lane lines */}
+          <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-muted/30" />
+          <div className="absolute left-0 right-0 top-2/3 border-t border-dashed border-muted/30" />
+          
+          {/* Garden at the right */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+            <span className="text-4xl">{plantHealth > 70 ? '🌳' : plantHealth > 30 ? '🌿' : '🥀'}</span>
+            <span className="text-[10px] text-muted-foreground">Garden</span>
           </div>
-        ) : currentPest && (
-          <div className="space-y-4">
-            {/* Pest info */}
-            <div className="text-center p-4 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl border border-purple-500/20">
-              <div className="text-5xl mb-2">{currentPest.pest.emoji}</div>
-              <h3 className="text-lg font-bold">{currentPest.pest.name}</h3>
-              <p className="text-sm text-muted-foreground">Attacking: {currentPest.pest.targetPlant}</p>
-              <p className="text-xs text-muted-foreground mt-1">Damage: {currentPest.pest.damage}</p>
+
+          {/* Defense zone indicator */}
+          <div className="absolute right-16 top-0 bottom-0 w-px border-l-2 border-dashed border-green-500/30" />
+
+          {/* Active pests */}
+          {activePests.map(ap => (
+            <button
+              key={ap.id}
+              onClick={() => defendAgainst(ap.id)}
+              disabled={ap.defeated}
+              className={`absolute -translate-y-1/2 transition-all duration-200 ${
+                ap.defeated 
+                  ? ap.defeatType === 'eco'
+                    ? 'scale-0 opacity-0'
+                    : 'scale-0 opacity-0 rotate-180'
+                  : 'hover:scale-150 active:scale-75 cursor-crosshair'
+              }`}
+              style={{ 
+                left: `${Math.min(ap.position, 80)}%`, 
+                top: getLaneY(ap.lane),
+                transition: ap.defeated ? 'all 0.3s' : 'left 0.4s linear'
+              }}
+              title={`${ap.pest.name} — Click to defend!`}
+            >
+              <span className="text-3xl animate-pulse">{ap.pest.emoji}</span>
+            </button>
+          ))}
+
+          {/* Empty state */}
+          {activePests.filter(p => !p.defeated).length === 0 && spawnQueueRef.current.length > 0 && !completed && (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+              Pests approaching... pick your defense! 🛡️
             </div>
+          )}
 
-            <p className="font-medium text-center text-sm">How do you defend?</p>
-
-            {/* Options */}
-            <div className="grid gap-3">
-              <button
-                onClick={() => chooseSolution(true)}
-                disabled={answered}
-                className={`p-3 rounded-lg border-2 text-left text-sm transition-all ${
-                  answered && isCorrect ? 'border-green-500 bg-green-500/10' : 'border-green-500/30 hover:border-green-500 hover:bg-green-500/5'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Leaf className="h-4 w-4 text-green-500" />
-                  <span className="font-medium text-green-700 dark:text-green-400">🌿 Eco-Friendly</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">{currentPest.pest.ecoFriendlySolution}</p>
-              </button>
-
-              <button
-                onClick={() => chooseSolution(false)}
-                disabled={answered}
-                className={`p-3 rounded-lg border-2 text-left text-sm transition-all ${
-                  answered && !isCorrect ? 'border-orange-500 bg-orange-500/10' : 'border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Bug className="h-4 w-4 text-orange-500" />
-                  <span className="font-medium text-orange-700 dark:text-orange-400">🧪 Chemical</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">{currentPest.pest.chemicalSolution}</p>
-              </button>
-            </div>
-
-            {/* Explanation */}
-            {answered && (
-              <div className={`p-3 rounded-lg border ${isCorrect ? 'bg-green-500/10 border-green-500/30' : 'bg-orange-500/10 border-orange-500/30'}`}>
-                <p className="text-xs flex items-start gap-1">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  {currentPest.pest.explanation}
-                </p>
+          {completed && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+              <div className="text-center">
+                <span className="text-5xl">{plantHealth > 50 ? '🎉' : '😅'}</span>
+                <p className="font-bold mt-2">{plantHealth > 50 ? 'Garden Saved!' : 'Garden Survived!'}</p>
               </div>
-            )}
+            </div>
+          )}
+        </div>
 
-            {answered && (
-              <Button onClick={continueGame} className="w-full">Continue Defending</Button>
-            )}
+        {/* Defense log */}
+        {defenseLog.length > 0 && (
+          <div className="max-h-20 overflow-y-auto space-y-0.5 p-2 bg-muted/30 rounded-lg">
+            {defenseLog.map((log, i) => (
+              <p key={i} className="text-[10px] text-muted-foreground">{log}</p>
+            ))}
           </div>
         )}
 
         {/* Stats */}
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Defeated: {pestsDefeated}/{pests.length}</span>
+          <span>Defeated: {pestsDefeated}/{totalPests}</span>
           <span>Eco Rating: {ecoScore >= 80 ? '🌟 Excellent' : ecoScore >= 50 ? '👍 Good' : ecoScore >= 20 ? '⚡ Fair' : '💪 Keep trying'}</span>
         </div>
 
-        {!showQuestion && (
+        {!completed && (
           <Button onClick={onBack} variant="outline" className="w-full">Exit Game</Button>
         )}
       </CardContent>
