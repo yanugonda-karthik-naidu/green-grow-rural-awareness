@@ -12,6 +12,7 @@ import { DiseaseIdentifier } from "./games/DiseaseIdentifier";
 import { GardenPlanner } from "./games/GardenPlanner";
 import { WaterSoilBalance } from "./games/WaterSoilBalance";
 import { PestDefender } from "./games/PestDefender";
+import { GameLeaderboard } from "./games/GameLeaderboard";
 
 interface EcoGameHubProps {
   progress: UserProgress;
@@ -145,12 +146,14 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
           return (
             <Card
               key={game.id}
-              className="border-2 border-muted/50 hover:shadow-xl hover:border-primary/30 transition-all cursor-pointer group overflow-hidden"
+              className="border-2 border-muted/50 hover:shadow-xl hover:border-primary/30 transition-all cursor-pointer group overflow-hidden hover:scale-[1.02]"
               onClick={() => setActiveGame(game.id)}
             >
               <CardHeader className={`bg-gradient-to-br ${game.gradient} pb-3`}>
                 <div className="flex items-start justify-between">
-                  <Icon className={`h-10 w-10 ${game.color} group-hover:scale-110 transition-transform`} />
+                  <div className="p-2 rounded-xl bg-background/50 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                    <Icon className={`h-8 w-8 ${game.color}`} />
+                  </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="outline" className={`text-[10px] ${difficultyColor[game.difficulty]}`}>
                       {game.difficulty}
@@ -162,13 +165,12 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm text-muted-foreground leading-relaxed">{game.description}</p>
-
                 <div className="flex items-center justify-between pt-2 border-t border-muted">
                   <Badge variant="secondary" className="text-xs">
                     <Zap className="h-3 w-3 mr-1 text-yellow-600" />
                     {game.seedReward} Seeds
                   </Badge>
-                  <Button size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Button size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                     <Play className="h-3 w-3 mr-1" /> Play
                   </Button>
                 </div>
@@ -177,6 +179,9 @@ export const EcoGameHub = ({ progress, onProgressUpdate }: EcoGameHubProps) => {
           );
         })}
       </div>
+
+      {/* Game Leaderboard */}
+      <GameLeaderboard />
     </div>
   );
 };

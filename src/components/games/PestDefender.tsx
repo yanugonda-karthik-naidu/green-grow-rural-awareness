@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Zap, Leaf, Bug, Heart } from "lucide-react";
 import { pests, Pest } from "@/lib/ecoGameData";
+import { ParticleEffects } from "./ParticleEffects";
 import confetti from "canvas-confetti";
 
 interface PestDefenderProps {
@@ -50,6 +51,8 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
   const [totalPests] = useState(pests.length * 2); // Each pest spawns twice
   const [defenseLog, setDefenseLog] = useState<string[]>([]);
   const [combo, setCombo] = useState(0);
+  const [particleTrigger, setParticleTrigger] = useState(0);
+  const [particleType, setParticleType] = useState<'eco' | 'damage'>('eco');
   const pestIdRef = useRef(0);
   const spawnQueueRef = useRef([...pests, ...pests].sort(() => Math.random() - 0.5));
 
@@ -129,13 +132,17 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
       setScore(prev => prev + 20 + comboBonus);
       setEcoScore(prev => prev + 15);
       setCombo(prev => prev + 1);
+      setParticleType('eco');
+      setParticleTrigger(p => p + 1);
       confetti({ particleCount: 10, spread: 30, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
       setDefenseLog(prev => [`🌿 ${tool.name} vs ${pests.find(p => p.name === activePests.find(a => a.id === pestId)?.pest.name)?.name || 'pest'}${comboBonus > 0 ? ` (+${comboBonus} combo!)` : ''}`, ...prev.slice(0, 4)]);
     } else {
       setScore(prev => prev + 10);
       setEcoScore(prev => Math.max(0, prev - 10));
       setCombo(0);
-      setPlantHealth(prev => Math.max(0, prev - 3)); // Chemical damage to ecosystem
+      setPlantHealth(prev => Math.max(0, prev - 3));
+      setParticleType('damage');
+      setParticleTrigger(p => p + 1);
       setDefenseLog(prev => [`☠️ Chemical used — ecosystem damaged!`, ...prev.slice(0, 4)]);
     }
   }, [selectedTool, completed, combo, activePests]);
@@ -207,6 +214,7 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
 
         {/* Game field */}
         <div className="relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden">
+          <ParticleEffects trigger={particleTrigger} type={particleType} intensity={0.8} />
           {/* Lane lines */}
           <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-muted/30" />
           <div className="absolute left-0 right-0 top-2/3 border-t border-dashed border-muted/30" />
