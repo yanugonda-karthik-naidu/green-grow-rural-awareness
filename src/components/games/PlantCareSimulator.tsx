@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Sprout, Droplets, Sun, Leaf, Zap, Info } from "lucide-react";
 import { plantLifecycleStages } from "@/lib/ecoGameData";
+import { ParticleEffects, GlowRing, ScorePopup } from "./ParticleEffects";
 import confetti from "canvas-confetti";
 
 interface PlantCareSimulatorProps {
@@ -24,7 +25,9 @@ export const PlantCareSimulator = ({ onComplete, onBack }: PlantCareSimulatorPro
   const [overwatered, setOverwatered] = useState(false);
   const [sunburned, setSunburned] = useState(false);
   const [completed, setCompleted] = useState(false);
-
+  const [particleTrigger, setParticleTrigger] = useState(0);
+  const [particleType, setParticleType] = useState<'growth' | 'water' | 'sun' | 'damage' | 'sparkle'>('growth');
+  const [scorePopup, setScorePopup] = useState({ score: 0, show: false });
   const currentStage = plantLifecycleStages[stage];
 
   useEffect(() => {
@@ -52,16 +55,22 @@ export const PlantCareSimulator = ({ onComplete, onBack }: PlantCareSimulatorPro
   const addWater = () => {
     setWater(prev => Math.min(100, prev + 15));
     setShowTip(false);
+    setParticleType('water');
+    setParticleTrigger(p => p + 1);
   };
 
   const addSun = () => {
     setSun(prev => Math.min(100, prev + 20));
     setShowTip(false);
+    setParticleType('sun');
+    setParticleTrigger(p => p + 1);
   };
 
   const addNutrients = () => {
     setNutrients(prev => Math.min(100, prev + 20));
     setShowTip(false);
+    setParticleType('sparkle');
+    setParticleTrigger(p => p + 1);
   };
 
   const tryAdvanceStage = () => {
@@ -73,6 +82,10 @@ export const PlantCareSimulator = ({ onComplete, onBack }: PlantCareSimulatorPro
     ) {
       const stageScore = Math.round((health / 100) * 30);
       setScore(prev => prev + stageScore);
+      setScorePopup({ score: stageScore, show: true });
+      setTimeout(() => setScorePopup({ score: 0, show: false }), 1200);
+      setParticleType('growth');
+      setParticleTrigger(p => p + 1);
 
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#6ee7b7'] });
 
@@ -109,8 +122,11 @@ export const PlantCareSimulator = ({ onComplete, onBack }: PlantCareSimulatorPro
       </CardHeader>
       <CardContent className="p-6 space-y-5">
         {/* Plant display */}
-        <div className="text-center py-6 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-xl border border-green-500/20">
-          <div className="text-7xl mb-3 transition-all duration-500">{currentStage.emoji}</div>
+        <div className="relative text-center py-6 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-xl border border-green-500/20 overflow-hidden">
+          <ParticleEffects trigger={particleTrigger} type={particleType as any} intensity={1.2} />
+          <GlowRing active={canAdvance} color="green" />
+          <ScorePopup score={scorePopup.score} show={scorePopup.show} />
+          <div className={`text-7xl mb-3 transition-all duration-700 ${canAdvance ? 'animate-bounce' : ''}`} style={{ animationDuration: '2s' }}>{currentStage.emoji}</div>
           <h3 className="text-xl font-bold text-foreground">{currentStage.name}</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">{currentStage.description}</p>
           {overwatered && <p className="text-sm text-red-500 mt-2 font-medium">⚠️ Over-watered! Roots may rot!</p>}

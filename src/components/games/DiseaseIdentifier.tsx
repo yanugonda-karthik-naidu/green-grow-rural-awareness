@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Stethoscope, Zap, Search, Beaker, Heart, AlertTriangle } from "lucide-react";
 import { diseaseCards } from "@/lib/ecoGameData";
+import { ParticleEffects, GlowRing } from "./ParticleEffects";
 import confetti from "canvas-confetti";
 
 interface DiseaseIdentifierProps {
@@ -38,7 +39,8 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
   const [shakeArea, setShakeArea] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [healingAnimation, setHealingAnimation] = useState(false);
-
+  const [particleTrigger, setParticleTrigger] = useState(0);
+  const [particleType, setParticleType] = useState<'heal' | 'damage' | 'sparkle'>('heal');
   const card = diseaseCards[currentIndex];
 
   // Generate examination areas for the plant
@@ -117,10 +119,14 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
       setPlantHealth(prev => Math.min(100, prev + 30));
       setScore(prev => prev + 15);
       setHealingAnimation(true);
+      setParticleType('heal');
+      setParticleTrigger(p => p + 1);
       confetti({ particleCount: 20, spread: 40, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
       setTimeout(() => setHealingAnimation(false), 1000);
     } else {
       setPlantHealth(prev => Math.max(10, prev - 10));
+      setParticleType('damage');
+      setParticleTrigger(p => p + 1);
       setShakeArea('plant');
       setTimeout(() => setShakeArea(null), 500);
     }
@@ -192,6 +198,8 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
           shakeArea === 'plant' ? 'bg-red-500/10 border-red-500/30 animate-pulse' :
           'bg-gradient-to-br from-red-500/5 to-orange-500/5 border-red-500/20'
         }`}>
+          <ParticleEffects trigger={particleTrigger} type={particleType} intensity={1} />
+          <GlowRing active={healingAnimation} color={healingAnimation ? 'green' : 'red'} />
           <div className={`text-7xl mb-2 transition-all duration-500 ${healingAnimation ? 'scale-110' : ''}`}>
             {plantHealth >= 80 ? '🌳' : plantHealth >= 50 ? card.emoji : '🥀'}
           </div>
