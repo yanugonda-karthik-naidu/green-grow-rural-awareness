@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Shield, Zap, Leaf, Bug, Heart } from "lucide-react";
+import { Shield, Zap, Leaf, Bug, Heart, Rocket } from "lucide-react";
 import { pests, Pest } from "@/lib/ecoGameData";
 import { ParticleEffects } from "./ParticleEffects";
+import { GameSounds } from "@/lib/gameSounds";
 import confetti from "canvas-confetti";
 
 interface PestDefenderProps {
@@ -16,10 +17,11 @@ interface PestDefenderProps {
 interface ActivePest {
   pest: Pest;
   position: number;
-  lane: number; // 0, 1, 2 (top, middle, bottom)
+  lane: number;
   id: number;
   defeated: boolean;
   defeatType?: 'eco' | 'chemical';
+  shielded?: boolean;
 }
 
 type DefenseTool = 'ladybug' | 'neemoil' | 'trap' | 'spray';
@@ -33,11 +35,27 @@ interface ToolDef {
   description: string;
 }
 
+interface PowerUp {
+  id: string;
+  type: 'shield' | 'speed' | 'doubleSeeds';
+  name: string;
+  emoji: string;
+  description: string;
+  duration: number; // seconds
+  comboRequired: number;
+}
+
 const defenseTools: ToolDef[] = [
   { id: 'ladybug', name: 'Ladybugs', emoji: '🐞', type: 'eco', power: 3, description: 'Natural predators' },
   { id: 'neemoil', name: 'Neem Oil', emoji: '🌿', type: 'eco', power: 2, description: 'Organic repellent' },
   { id: 'trap', name: 'Sticky Trap', emoji: '🪤', type: 'eco', power: 2, description: 'Chemical-free catch' },
   { id: 'spray', name: 'Pesticide', emoji: '☠️', type: 'chemical', power: 4, description: 'Harms ecosystem!' },
+];
+
+const powerUpDefs: PowerUp[] = [
+  { id: 'shield', type: 'shield', name: 'Garden Shield', emoji: '🛡️', description: 'Blocks next 3 pests from damaging garden', duration: 10, comboRequired: 3 },
+  { id: 'speed', type: 'speed', name: 'Slow Motion', emoji: '⏳', description: 'Slows all pests for 8 seconds', duration: 8, comboRequired: 5 },
+  { id: 'doubleSeeds', type: 'doubleSeeds', name: 'Double Seeds', emoji: '✨', description: 'Double seed points for 10 seconds', duration: 10, comboRequired: 7 },
 ];
 
 export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
@@ -48,31 +66,62 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
   const [selectedTool, setSelectedTool] = useState<DefenseTool>('ladybug');
   const [completed, setCompleted] = useState(false);
   const [pestsDefeated, setPestsDefeated] = useState(0);
-  const [totalPests] = useState(pests.length * 2); // Each pest spawns twice
+  const [totalPests] = useState(pests.length * 2);
   const [defenseLog, setDefenseLog] = useState<string[]>([]);
   const [combo, setCombo] = useState(0);
   const [particleTrigger, setParticleTrigger] = useState(0);
   const [particleType, setParticleType] = useState<'eco' | 'damage'>('eco');
   const [shake, setShake] = useState(false);
   const [comboFlash, setComboFlash] = useState(0);
+
+  // Power-up state
+  const [activePowerUps, setActivePowerUps] = useState<{ type: string; expiresAt: number }[]>([]);
+  const [availablePowerUps, setAvailablePowerUps] = useState<PowerUp[]>([]);
+  const [shieldHits, setShieldHits] = useState(0);
+
   const pestIdRef = useRef(0);
   const spawnQueueRef = useRef([...pests, ...pests].sort(() => Math.random() - 0.5));
 
-  // Spawn pests periodically
+  const hasActivePowerUp = (type: string) => activePowerUps.some(p => p.type === type && p.expiresAt > Date.now());
+
+  // Check combo milestones for power-up availability
+  useEffect(() => {
+    const newAvailable: PowerUp[] = [];
+    for (const pu of powerUpDefs) {
+      if (combo >= pu.comboRequired && !hasActivePowerUp(pu.type) && !availablePowerUps.find(a => a.id === pu.id)) {
+        newAvailable.push(pu);
+      }
+    }
+    if (newAvailable.length > 0) {
+      setAvailablePowerUps(prev => [...prev, ...newAvailable]);
+    }
+  }, [combo]);
+
+  // Clean up expired power-ups
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActivePowerUps(prev => prev.filter(p => p.expiresAt > Date.now()));
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activatePowerUp = (pu: PowerUp) => {
+    GameSounds.powerUp();
+    setActivePowerUps(prev => [...prev, { type: pu.type, expiresAt: Date.now() + pu.duration * 1000 }]);
+    setAvailablePowerUps(prev => prev.filter(p => p.id !== pu.id));
+    if (pu.type === 'shield') setShieldHits(3);
+    setDefenseLog(prev => [`⚡ ${pu.emoji} ${pu.name} activated!`, ...prev.slice(0, 4)]);
+    confetti({ particleCount: 40, spread: 60, origin: { y: 0.4 }, colors: ['#6366f1', '#8b5cf6', '#a78bfa'] });
+  };
+
+  // Spawn pests
   useEffect(() => {
     if (completed) return;
     const timer = setInterval(() => {
       if (spawnQueueRef.current.length === 0 || activePests.filter(p => !p.defeated).length >= 4) return;
-      
       const pest = spawnQueueRef.current.shift()!;
       const id = ++pestIdRef.current;
-      setActivePests(prev => [...prev, {
-        pest,
-        position: 0,
-        lane: Math.floor(Math.random() * 3),
-        id,
-        defeated: false,
-      }]);
+      setActivePests(prev => [...prev, { pest, position: 0, lane: Math.floor(Math.random() * 3), id, defeated: false }]);
     }, 2500);
     return () => clearInterval(timer);
   }, [completed, activePests]);
@@ -80,35 +129,41 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
   // Move pests
   useEffect(() => {
     if (completed) return;
+    const speedMultiplier = hasActivePowerUp('speed') ? 0.4 : 1;
     const timer = setInterval(() => {
       setActivePests(prev => {
-        const updated = prev.map(ap => 
-          ap.defeated ? ap : { ...ap, position: ap.position + ap.pest.speed * 1.5 }
+        const updated = prev.map(ap =>
+          ap.defeated ? ap : { ...ap, position: ap.position + ap.pest.speed * 1.5 * speedMultiplier }
         );
-        
-        // Check plant damage
         const reached = updated.filter(ap => !ap.defeated && ap.position >= 100);
         if (reached.length > 0) {
-          setPlantHealth(h => Math.max(0, h - reached.length * 12));
-          setCombo(0);
+          if (hasActivePowerUp('shield') && shieldHits > 0) {
+            setShieldHits(h => Math.max(0, h - reached.length));
+            GameSounds.shieldActivate();
+            setDefenseLog(prev => [`🛡️ Shield blocked ${reached.length} pest(s)!`, ...prev.slice(0, 4)]);
+          } else {
+            setPlantHealth(h => Math.max(0, h - reached.length * 12));
+            setCombo(0);
+          }
         }
-        
         return updated.filter(ap => ap.defeated || ap.position < 100);
       });
     }, 400);
     return () => clearInterval(timer);
-  }, [completed]);
+  }, [completed, shieldHits, activePowerUps]);
 
   // Check game end
   useEffect(() => {
     if (completed) return;
     if (plantHealth <= 0) {
       setCompleted(true);
+      GameSounds.gameLose();
       const totalSeeds = score + Math.round(ecoScore / 2);
       setTimeout(() => onComplete(totalSeeds), 1000);
     }
     if (pestsDefeated >= totalPests && activePests.filter(p => !p.defeated).length === 0) {
       setCompleted(true);
+      GameSounds.gameWin();
       const bonus = plantHealth >= 50 ? 50 : 20;
       const totalSeeds = score + Math.round(ecoScore / 2) + bonus;
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
@@ -116,47 +171,50 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
     }
   }, [plantHealth, pestsDefeated, activePests, completed, totalPests]);
 
-  // Click pest to defend
   const defendAgainst = useCallback((pestId: number) => {
     if (completed) return;
-    
     const tool = defenseTools.find(t => t.id === selectedTool)!;
-    
+
     setActivePests(prev => prev.map(ap => {
       if (ap.id !== pestId || ap.defeated) return ap;
       return { ...ap, defeated: true, defeatType: tool.type };
     }));
-
     setPestsDefeated(p => p + 1);
+
+    const doubleActive = hasActivePowerUp('doubleSeeds');
+    const multiplier = doubleActive ? 2 : 1;
 
     if (tool.type === 'eco') {
       const newCombo = combo + 1;
       const comboBonus = newCombo >= 5 ? 25 : newCombo >= 3 ? 15 : newCombo >= 2 ? 8 : 0;
-      setScore(prev => prev + 20 + comboBonus);
+      setScore(prev => prev + (20 + comboBonus) * multiplier);
       setEcoScore(prev => prev + 15);
       setCombo(newCombo);
       setParticleType('eco');
       setParticleTrigger(p => p + 1);
+      GameSounds.ecoKill();
       if (newCombo >= 3) {
         setComboFlash(newCombo);
+        GameSounds.combo(newCombo);
         setTimeout(() => setComboFlash(0), 800);
       }
       confetti({ particleCount: 10 + newCombo * 3, spread: 30 + newCombo * 5, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
-      setDefenseLog(prev => [`🌿 ${tool.name} vs ${pests.find(p => p.name === activePests.find(a => a.id === pestId)?.pest.name)?.name || 'pest'}${comboBonus > 0 ? ` (+${comboBonus} combo!)` : ''}`, ...prev.slice(0, 4)]);
+      setDefenseLog(prev => [`🌿 ${tool.name} vs pest${comboBonus > 0 ? ` (+${comboBonus * multiplier} combo${doubleActive ? ' ×2!' : '!'})` : ''}`, ...prev.slice(0, 4)]);
     } else {
-      setScore(prev => prev + 10);
+      setScore(prev => prev + 10 * multiplier);
       setEcoScore(prev => Math.max(0, prev - 10));
       setCombo(0);
       setPlantHealth(prev => Math.max(0, prev - 3));
       setParticleType('damage');
       setParticleTrigger(p => p + 1);
       setShake(true);
+      GameSounds.chemicalUse();
       setTimeout(() => setShake(false), 400);
       setDefenseLog(prev => [`☠️ Chemical used — ecosystem damaged!`, ...prev.slice(0, 4)]);
     }
-  }, [selectedTool, completed, combo, activePests]);
+  }, [selectedTool, completed, combo, activePowerUps, shieldHits]);
 
-  // Clean up defeated pests after animation
+  // Clean up defeated pests
   useEffect(() => {
     const timer = setTimeout(() => {
       setActivePests(prev => prev.filter(ap => !ap.defeated));
@@ -164,9 +222,7 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
     return () => clearTimeout(timer);
   }, [activePests.filter(p => p.defeated).length]);
 
-  const getLaneY = (lane: number) => {
-    return lane === 0 ? '15%' : lane === 1 ? '45%' : '75%';
-  };
+  const getLaneY = (lane: number) => lane === 0 ? '15%' : lane === 1 ? '45%' : '75%';
 
   return (
     <Card className="border-2 border-purple-500/30 shadow-xl">
@@ -178,17 +234,19 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
           </span>
           <div className="flex gap-2">
             {combo >= 2 && <Badge className={`bg-orange-500 ${combo >= 5 ? 'animate-bounce' : 'animate-pulse'}`}>🔥 ×{combo}{combo >= 5 ? ' MEGA!' : combo >= 3 ? ' HOT!' : ''}</Badge>}
+            {hasActivePowerUp('doubleSeeds') && <Badge className="bg-indigo-500 animate-pulse">✨ ×2</Badge>}
             <Badge variant="secondary">🌿 {ecoScore}</Badge>
             <Badge variant="secondary"><Zap className="h-3 w-3 mr-1" />{score}</Badge>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
-        {/* Plant health bar */}
+        {/* Plant health */}
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <span className="flex items-center gap-1">
               <Heart className="h-3 w-3" /> Garden Health
+              {hasActivePowerUp('shield') && <span className="text-xs text-indigo-500 ml-1">🛡️ {shieldHits} blocks</span>}
             </span>
             <span className={`font-semibold ${plantHealth < 30 ? 'text-red-500' : plantHealth < 60 ? 'text-yellow-500' : 'text-green-500'}`}>
               {Math.round(plantHealth)}%
@@ -197,16 +255,48 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
           <Progress value={plantHealth} className="h-3" />
         </div>
 
-        {/* Defense tool selector */}
+        {/* Active power-ups bar */}
+        {activePowerUps.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {activePowerUps.filter(p => p.expiresAt > Date.now()).map((p, i) => {
+              const def = powerUpDefs.find(d => d.type === p.type);
+              const remaining = Math.max(0, Math.ceil((p.expiresAt - Date.now()) / 1000));
+              return (
+                <Badge key={i} className="bg-indigo-500/20 text-indigo-700 border-indigo-500/40 animate-pulse text-xs">
+                  {def?.emoji} {def?.name} ({remaining}s)
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Available power-ups */}
+        {availablePowerUps.length > 0 && !completed && (
+          <div className="flex gap-2 justify-center animate-fade-in">
+            {availablePowerUps.map(pu => (
+              <button
+                key={pu.id}
+                onClick={() => activatePowerUp(pu)}
+                className="px-3 py-1.5 rounded-lg border-2 border-indigo-500/50 bg-indigo-500/10 hover:bg-indigo-500/20 transition-all hover:scale-110 active:scale-95 animate-pulse"
+                title={pu.description}
+              >
+                <span className="text-lg">{pu.emoji}</span>
+                <span className="text-[9px] block font-medium text-indigo-700">{pu.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Defense tools */}
         <div className="flex gap-2 justify-center">
           {defenseTools.map(tool => (
             <button
               key={tool.id}
               onClick={() => setSelectedTool(tool.id)}
               className={`p-2 rounded-xl border-2 text-center transition-all hover:scale-110 active:scale-95 ${
-                selectedTool === tool.id 
-                  ? tool.type === 'eco' 
-                    ? 'border-green-500 bg-green-500/10 scale-105' 
+                selectedTool === tool.id
+                  ? tool.type === 'eco'
+                    ? 'border-green-500 bg-green-500/10 scale-105'
                     : 'border-red-500 bg-red-500/10 scale-105'
                   : 'border-muted hover:border-primary/30'
               }`}
@@ -222,9 +312,8 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
         </div>
 
         {/* Game field */}
-        <div className={`relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden transition-transform ${shake ? 'animate-screen-shake' : ''}`}>
+        <div className={`relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 ${hasActivePowerUp('shield') ? 'border-indigo-500/50' : 'border-green-500/20'} overflow-hidden transition-all ${shake ? 'animate-screen-shake' : ''} ${hasActivePowerUp('speed') ? 'ring-2 ring-amber-400/30' : ''}`}>
           <ParticleEffects trigger={particleTrigger} type={particleType} intensity={0.8} />
-          {/* Combo multiplier popup */}
           {comboFlash >= 3 && (
             <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-combo-flash">
               <span className={`font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-300 drop-shadow-lg ${comboFlash >= 5 ? 'text-6xl' : 'text-5xl'}`}>
@@ -232,44 +321,40 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
               </span>
             </div>
           )}
-          {/* Lane lines */}
           <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-muted/30" />
           <div className="absolute left-0 right-0 top-2/3 border-t border-dashed border-muted/30" />
-          
-          {/* Garden at the right */}
+
+          {/* Garden */}
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
             <span className="text-4xl">{plantHealth > 70 ? '🌳' : plantHealth > 30 ? '🌿' : '🥀'}</span>
+            {hasActivePowerUp('shield') && <span className="text-lg animate-pulse">🛡️</span>}
             <span className="text-[10px] text-muted-foreground">Garden</span>
           </div>
 
-          {/* Defense zone indicator */}
           <div className="absolute right-16 top-0 bottom-0 w-px border-l-2 border-dashed border-green-500/30" />
 
-          {/* Active pests */}
+          {/* Pests */}
           {activePests.map(ap => (
             <button
               key={ap.id}
               onClick={() => defendAgainst(ap.id)}
               disabled={ap.defeated}
               className={`absolute -translate-y-1/2 transition-all duration-200 ${
-                ap.defeated 
-                  ? ap.defeatType === 'eco'
-                    ? 'scale-0 opacity-0'
-                    : 'scale-0 opacity-0 rotate-180'
+                ap.defeated
+                  ? ap.defeatType === 'eco' ? 'scale-0 opacity-0' : 'scale-0 opacity-0 rotate-180'
                   : 'hover:scale-150 active:scale-75 cursor-crosshair'
               }`}
-              style={{ 
-                left: `${Math.min(ap.position, 80)}%`, 
+              style={{
+                left: `${Math.min(ap.position, 80)}%`,
                 top: getLaneY(ap.lane),
                 transition: ap.defeated ? 'all 0.3s' : 'left 0.4s linear'
               }}
               title={`${ap.pest.name} — Click to defend!`}
             >
-              <span className="text-3xl animate-pulse">{ap.pest.emoji}</span>
+              <span className={`text-3xl ${hasActivePowerUp('speed') ? 'opacity-70' : ''} animate-pulse`}>{ap.pest.emoji}</span>
             </button>
           ))}
 
-          {/* Empty state */}
           {activePests.filter(p => !p.defeated).length === 0 && spawnQueueRef.current.length > 0 && !completed && (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
               Pests approaching... pick your defense! 🛡️
