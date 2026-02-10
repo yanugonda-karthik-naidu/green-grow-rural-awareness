@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Stethoscope, Zap, Search, Beaker, Heart, AlertTriangle } from "lucide-react";
 import { diseaseCards } from "@/lib/ecoGameData";
 import { ParticleEffects, GlowRing } from "./ParticleEffects";
+import { GameSounds } from "@/lib/gameSounds";
 import confetti from "canvas-confetti";
 
 interface DiseaseIdentifierProps {
@@ -87,6 +88,7 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
       setScore(prev => prev + 5);
       setShakeArea(areaId);
       setTimeout(() => setShakeArea(null), 500);
+      GameSounds.pestClick();
       confetti({ particleCount: 8, spread: 30, origin: { y: 0.5 }, colors: ['#f59e0b', '#ef4444'] });
     } else {
       setShakeArea(areaId);
@@ -98,6 +100,7 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
     setDiagnosisGuess(disease);
     if (disease === card.diseaseName) {
       setScore(prev => prev + 20);
+      GameSounds.ecoKill();
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 }, colors: ['#10b981'] });
       setTimeout(() => setPhase('treat'), 800);
     } else {
@@ -121,6 +124,7 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
       setHealingAnimation(true);
       setParticleType('heal');
       setParticleTrigger(p => p + 1);
+      GameSounds.heal();
       confetti({ particleCount: 20, spread: 40, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
       setTimeout(() => setHealingAnimation(false), 1000);
     } else {
@@ -145,6 +149,7 @@ export const DiseaseIdentifier = ({ onComplete, onBack }: DiseaseIdentifierProps
   const nextPlant = () => {
     if (currentIndex + 1 >= diseaseCards.length) {
       setCompleted(true);
+      GameSounds.gameWin();
       const totalSeeds = score + 30;
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
       setTimeout(() => onComplete(totalSeeds), 1500);

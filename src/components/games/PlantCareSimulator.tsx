@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sprout, Droplets, Sun, Leaf, Zap, Info } from "lucide-react";
 import { plantLifecycleStages } from "@/lib/ecoGameData";
 import { ParticleEffects, GlowRing, ScorePopup } from "./ParticleEffects";
+import { GameSounds } from "@/lib/gameSounds";
 import confetti from "canvas-confetti";
 
 interface PlantCareSimulatorProps {
@@ -91,6 +92,7 @@ export const PlantCareSimulator = ({ onComplete, onBack }: PlantCareSimulatorPro
 
       if (stage + 1 >= plantLifecycleStages.length) {
         setCompleted(true);
+        GameSounds.gameWin();
         const totalSeeds = score + stageScore + 50; // bonus for completion
         confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
         setTimeout(() => onComplete(totalSeeds), 1500);
