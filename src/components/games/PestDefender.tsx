@@ -53,6 +53,8 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
   const [combo, setCombo] = useState(0);
   const [particleTrigger, setParticleTrigger] = useState(0);
   const [particleType, setParticleType] = useState<'eco' | 'damage'>('eco');
+  const [shake, setShake] = useState(false);
+  const [comboFlash, setComboFlash] = useState(0);
   const pestIdRef = useRef(0);
   const spawnQueueRef = useRef([...pests, ...pests].sort(() => Math.random() - 0.5));
 
@@ -128,13 +130,18 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
     setPestsDefeated(p => p + 1);
 
     if (tool.type === 'eco') {
-      const comboBonus = combo >= 3 ? 15 : combo >= 2 ? 8 : 0;
+      const newCombo = combo + 1;
+      const comboBonus = newCombo >= 5 ? 25 : newCombo >= 3 ? 15 : newCombo >= 2 ? 8 : 0;
       setScore(prev => prev + 20 + comboBonus);
       setEcoScore(prev => prev + 15);
-      setCombo(prev => prev + 1);
+      setCombo(newCombo);
       setParticleType('eco');
       setParticleTrigger(p => p + 1);
-      confetti({ particleCount: 10, spread: 30, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
+      if (newCombo >= 3) {
+        setComboFlash(newCombo);
+        setTimeout(() => setComboFlash(0), 800);
+      }
+      confetti({ particleCount: 10 + newCombo * 3, spread: 30 + newCombo * 5, origin: { y: 0.5 }, colors: ['#10b981', '#34d399'] });
       setDefenseLog(prev => [`🌿 ${tool.name} vs ${pests.find(p => p.name === activePests.find(a => a.id === pestId)?.pest.name)?.name || 'pest'}${comboBonus > 0 ? ` (+${comboBonus} combo!)` : ''}`, ...prev.slice(0, 4)]);
     } else {
       setScore(prev => prev + 10);
@@ -143,6 +150,8 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
       setPlantHealth(prev => Math.max(0, prev - 3));
       setParticleType('damage');
       setParticleTrigger(p => p + 1);
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
       setDefenseLog(prev => [`☠️ Chemical used — ecosystem damaged!`, ...prev.slice(0, 4)]);
     }
   }, [selectedTool, completed, combo, activePests]);
@@ -168,7 +177,7 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
             Pest Defender
           </span>
           <div className="flex gap-2">
-            {combo >= 2 && <Badge className="bg-orange-500 animate-pulse">🔥 ×{combo}</Badge>}
+            {combo >= 2 && <Badge className={`bg-orange-500 ${combo >= 5 ? 'animate-bounce' : 'animate-pulse'}`}>🔥 ×{combo}{combo >= 5 ? ' MEGA!' : combo >= 3 ? ' HOT!' : ''}</Badge>}
             <Badge variant="secondary">🌿 {ecoScore}</Badge>
             <Badge variant="secondary"><Zap className="h-3 w-3 mr-1" />{score}</Badge>
           </div>
@@ -213,8 +222,16 @@ export const PestDefender = ({ onComplete, onBack }: PestDefenderProps) => {
         </div>
 
         {/* Game field */}
-        <div className="relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden">
+        <div className={`relative h-56 rounded-xl bg-gradient-to-r from-red-500/5 via-yellow-500/5 to-green-500/10 border-2 border-green-500/20 overflow-hidden transition-transform ${shake ? 'animate-screen-shake' : ''}`}>
           <ParticleEffects trigger={particleTrigger} type={particleType} intensity={0.8} />
+          {/* Combo multiplier popup */}
+          {comboFlash >= 3 && (
+            <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-combo-flash">
+              <span className={`font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-300 drop-shadow-lg ${comboFlash >= 5 ? 'text-6xl' : 'text-5xl'}`}>
+                🔥 ×{comboFlash}
+              </span>
+            </div>
+          )}
           {/* Lane lines */}
           <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-muted/30" />
           <div className="absolute left-0 right-0 top-2/3 border-t border-dashed border-muted/30" />
