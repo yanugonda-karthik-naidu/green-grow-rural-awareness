@@ -182,9 +182,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
             .single();
 
           if (!existingStreakBadge) {
-            await supabase.from('user_badges').insert({
-              user_id: userId,
-              badge_name: 'Consistent Planter',
+            await supabase.rpc('award_badge', {
+              p_user_id: userId,
+              p_badge_name: 'Consistent Planter',
             });
             await supabase.from('user_notifications').insert({
               user_id: userId,
