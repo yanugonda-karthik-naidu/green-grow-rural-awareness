@@ -99,9 +99,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
       .single();
 
     if (!existingCrusherBadge) {
-      await supabase.from('user_badges').insert({
-        user_id: userId,
-        badge_name: 'Goal Crusher',
+      await supabase.rpc('award_badge', {
+        p_user_id: userId,
+        p_badge_name: 'Goal Crusher',
       });
       await supabase.from('user_notifications').insert({
         user_id: userId,
@@ -131,9 +131,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
           .single();
 
         if (!existingWeeklyBadge) {
-          await supabase.from('user_badges').insert({
-            user_id: userId,
-            badge_name: 'Weekly Warrior',
+          await supabase.rpc('award_badge', {
+            p_user_id: userId,
+            p_badge_name: 'Weekly Warrior',
           });
           await supabase.from('user_notifications').insert({
             user_id: userId,
@@ -182,9 +182,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
             .single();
 
           if (!existingStreakBadge) {
-            await supabase.from('user_badges').insert({
-              user_id: userId,
-              badge_name: 'Consistent Planter',
+            await supabase.rpc('award_badge', {
+              p_user_id: userId,
+              p_badge_name: 'Consistent Planter',
             });
             await supabase.from('user_notifications').insert({
               user_id: userId,
@@ -205,9 +205,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
             .single();
 
           if (!existingChampionBadge) {
-            await supabase.from('user_badges').insert({
-              user_id: userId,
-              badge_name: 'Goal Champion',
+            await supabase.rpc('award_badge', {
+              p_user_id: userId,
+              p_badge_name: 'Goal Champion',
             });
             await supabase.from('user_notifications').insert({
               user_id: userId,

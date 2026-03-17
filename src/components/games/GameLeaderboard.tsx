@@ -47,12 +47,10 @@ export const GameLeaderboard = () => {
 
       if (error) throw error;
 
-      // Fetch display names
+      // Fetch display names via secure RPC (excludes email/phone)
       const userIds = (progressData || []).map(p => p.user_id);
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, location')
-        .in('id', userIds);
+        .rpc('get_public_profiles', { user_ids: userIds });
 
       const profileMap = new Map(
         (profiles || []).map(p => [p.id, p])
