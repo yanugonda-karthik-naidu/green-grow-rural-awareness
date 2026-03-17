@@ -159,7 +159,7 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
       const { data: automationData, error: automationError } = await supabase.functions.invoke(
         'plant-automation',
         {
-          body: { plantId: plantData.id, userId: user.id },
+          body: { plantId: plantData.id },
         }
       );
       

@@ -16,36 +16,55 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { plantId, userId } = await req.json();
-
-    if (!plantId || !userId) {
+    // SECURE: Extract userId from authenticated session
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing plantId or userId' }),
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = user.id;
+    const { plantId } = await req.json();
+
+    if (!plantId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing plantId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`Processing automation for plant ${plantId}, user ${userId}`);
 
-    // Get plant details
+    // Get plant details and verify ownership
     const { data: plant, error: plantError } = await supabase
       .from('planted_trees')
       .select('*')
       .eq('id', plantId)
+      .eq('user_id', userId)
       .single();
 
     if (plantError || !plant) {
-      console.error('Plant not found:', plantError);
+      console.error('Plant not found or access denied:', plantError);
       return new Response(
-        JSON.stringify({ error: 'Plant not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Plant not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Calculate seeds to award
-    let seedsAwarded = 5; // Base reward per tree
-    
-    // Bonus seeds for specific species
+    let seedsAwarded = 5;
     const bonusSpecies = ['neem', 'peepal', 'banyan'];
     if (plant.species && bonusSpecies.includes(plant.species.toLowerCase())) {
       seedsAwarded += 2;
@@ -82,116 +101,50 @@ serve(async (req) => {
     }
 
     // Award achievements based on milestones
-    const achievements = [];
-    
+    const achievements: { user_id: string; achievement_text: string; seeds_earned: number }[] = [];
+
     if (currentTreesPlanted === 1) {
-      achievements.push({
-        user_id: userId,
-        achievement_text: 'First Tree Planted! 🌱',
-        seeds_earned: 10,
-      });
-      
-      // Also add badge
-      await supabase.from('user_badges').insert({
-        user_id: userId,
-        badge_name: 'First Sapling',
-      });
+      achievements.push({ user_id: userId, achievement_text: 'First Tree Planted! 🌱', seeds_earned: 10 });
+      await supabase.from('user_badges').insert({ user_id: userId, badge_name: 'First Sapling' });
     }
-    
     if (currentTreesPlanted === 10) {
-      achievements.push({
-        user_id: userId,
-        achievement_text: 'Eco Warrior - 10 Trees Planted! ⚔️',
-        seeds_earned: 25,
-      });
-      
-      await supabase.from('user_badges').insert({
-        user_id: userId,
-        badge_name: 'Eco Warrior',
-      });
+      achievements.push({ user_id: userId, achievement_text: 'Eco Warrior - 10 Trees Planted! ⚔️', seeds_earned: 25 });
+      await supabase.from('user_badges').insert({ user_id: userId, badge_name: 'Eco Warrior' });
     }
-    
     if (currentTreesPlanted === 50) {
-      achievements.push({
-        user_id: userId,
-        achievement_text: 'Forest Friend - 50 Trees! 🌳',
-        seeds_earned: 50,
-      });
-      
-      await supabase.from('user_badges').insert({
-        user_id: userId,
-        badge_name: 'Forest Friend',
-      });
+      achievements.push({ user_id: userId, achievement_text: 'Forest Friend - 50 Trees! 🌳', seeds_earned: 50 });
+      await supabase.from('user_badges').insert({ user_id: userId, badge_name: 'Forest Friend' });
     }
-    
     if (currentTreesPlanted === 100) {
-      achievements.push({
-        user_id: userId,
-        achievement_text: 'Sustainability Leader - 100 Trees! 🌍',
-        seeds_earned: 100,
-      });
-      
-      await supabase.from('user_badges').insert({
-        user_id: userId,
-        badge_name: 'Sustainability Leader',
-      });
+      achievements.push({ user_id: userId, achievement_text: 'Sustainability Leader - 100 Trees! 🌍', seeds_earned: 100 });
+      await supabase.from('user_badges').insert({ user_id: userId, badge_name: 'Sustainability Leader' });
     }
 
-    // Insert achievements
     if (achievements.length > 0) {
-      const { error: achievementError } = await supabase
-        .from('achievements')
-        .insert(achievements);
-      
+      const { error: achievementError } = await supabase.from('achievements').insert(achievements);
       if (achievementError) {
         console.error('Error inserting achievements:', achievementError);
       } else {
         console.log(`Awarded ${achievements.length} achievements`);
-        
-        // Update total seeds with achievement bonuses
         const totalAchievementSeeds = achievements.reduce((sum, ach) => sum + ach.seeds_earned, 0);
-        await supabase
-          .from('user_progress')
-          .update({ 
-            seed_points: currentSeeds + totalAchievementSeeds 
-          })
-          .eq('user_id', userId);
+        await supabase.from('user_progress').update({ seed_points: currentSeeds + totalAchievementSeeds }).eq('user_id', userId);
       }
     }
 
     // Create community post if public
     if (plant.is_public) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', userId)
-        .single();
-
+      const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', userId).single();
       const authorName = profile?.display_name || 'Green Warrior';
-      
       const postContent = `🌱 ${authorName} just planted a ${plant.species || plant.tree_name}! ${plant.description ? `"${plant.description}"` : ''}`;
-      
-      const { error: postError } = await supabase
-        .from('community_posts')
-        .insert({
-          user_id: userId,
-          author_name: authorName,
-          content: postContent,
-          image_url: plant.image_path,
-        });
-
-      if (postError) {
-        console.error('Error creating community post:', postError);
-      } else {
-        console.log('Community post created');
-      }
+      await supabase.from('community_posts').insert({
+        user_id: userId,
+        author_name: authorName,
+        content: postContent,
+        image_url: plant.image_path,
+      });
     }
 
-    // Update analytics counters (trigger will handle this automatically)
-    const { data: analytics } = await supabase
-      .from('analytics_counters')
-      .select('*')
-      .single();
+    const { data: analytics } = await supabase.from('analytics_counters').select('*').single();
 
     return new Response(
       JSON.stringify({
@@ -205,9 +158,8 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in plant-automation function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -61,7 +61,7 @@ export const MiniGamesExpanded = ({ progress, onProgressUpdate }: MiniGamesExpan
   const [ecosystemComplete, setEcosystemComplete] = useState(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (isPlaying) {
       timer = setInterval(() => {
         setGameTime(prev => prev + 1);

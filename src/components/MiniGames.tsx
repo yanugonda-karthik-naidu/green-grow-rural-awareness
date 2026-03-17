@@ -41,7 +41,7 @@ export const MiniGames = ({ progress, onProgressUpdate }: MiniGamesProps) => {
   const [cleaned, setCleaned] = useState(0);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (isPlaying) {
       timer = setInterval(() => {
         setGameTime(prev => prev + 1);
