@@ -860,7 +860,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      award_badge: {
+        Args: { p_badge_name: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_public_profiles: {
+        Args: { user_ids: string[] }
+        Returns: {
+          display_name: string
+          id: string
+          location: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
