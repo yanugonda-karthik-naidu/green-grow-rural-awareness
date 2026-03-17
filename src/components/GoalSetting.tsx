@@ -205,9 +205,9 @@ export const GoalSetting = ({ userId }: GoalSettingProps) => {
             .single();
 
           if (!existingChampionBadge) {
-            await supabase.from('user_badges').insert({
-              user_id: userId,
-              badge_name: 'Goal Champion',
+            await supabase.rpc('award_badge', {
+              p_user_id: userId,
+              p_badge_name: 'Goal Champion',
             });
             await supabase.from('user_notifications').insert({
               user_id: userId,
