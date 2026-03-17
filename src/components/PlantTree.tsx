@@ -99,7 +99,7 @@ export const PlantTree = ({ language, onTreePlanted, addPlantedTree, t }: PlantT
     setIsGrowing(true);
     setTreeStage(0);
     
-    let growthInterval: NodeJS.Timeout | null = null;
+    let growthInterval: ReturnType<typeof setInterval> | null = null;
     
     try {
       // Save draft for offline support
